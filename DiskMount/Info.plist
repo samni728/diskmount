@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 samni.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>DiskMount 需要访问可移动磁盘，才能以安全的方式加载、卸载和提供 NTFS 读写访问。DiskMount needs removable-volume access to mount, unmount, and provide NTFS read/write access safely.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

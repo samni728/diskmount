@@ -2,6 +2,7 @@ import Foundation
 
 struct DiskDevice: Codable, Identifiable, Equatable {
     let id: String
+    let persistentID: String
     let wholeDiskIdentifier: String
     let name: String
     let fileSystem: String
@@ -30,7 +31,9 @@ struct PanelState: Codable {
     let proMode: Bool
     let language: String
     let authorizedProtectedDeviceIDs: [String]
+    let autoMountNTFSPersistentIDs: [String]
     let busyDeviceID: String?
     let message: String?
     let error: String?
+    let removableVolumePermissionRequired: Bool
 }

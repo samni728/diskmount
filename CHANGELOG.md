@@ -1,6 +1,30 @@
 # Changelog
 
+## 0.2.2 - 2026-08-03
+
+- Fixed the NTFS launch chain so the bundled engine is started through a real `sudo` process after macOS administrator authorization.
+- Removed the unreliable app-level raw-device preflight; the bundled engine now performs the authoritative access check.
+- Automatically restores the normal macOS read-only mount if the NTFS engine fails.
+- Keeps the macOS `sudo` authorization timestamp alive while DiskMount remains open, so later automatic mounts do not ask for the password again during the same app session.
+- Remembers NTFS disks by a stable hardware/partition fingerprint and automatically retries read/write mounting when a remembered disk is inserted.
+- Added a per-disk control to enable or disable automatic NTFS read/write mounting.
+- Corrected privacy guidance to distinguish Full Disk Access from Removable Volumes access.
+- Shows a clear `NTFS Writable` / `NTFS 可写` state after a successful read/write mount instead of offering another mount action.
+
 All notable DiskMount changes are recorded here.
+
+## 0.2.1 - 2026-08-03
+
+### Fixed
+
+- declare removable-volume access in the app bundle so macOS can authorize raw external-disk reads used by anylinuxfs;
+- recognize macOS/TCC raw-disk denials and replace the upstream `Cannot probe` error with actionable bilingual guidance;
+- add a one-click shortcut to the Files & Folders privacy settings when removable-volume access is blocked.
+
+### Security
+
+- administrator approval and removable-volume privacy consent remain separate, explicit user decisions;
+- the new permission flow does not add any format, erase, conversion, or repartition operation.
 
 ## 0.2.0 - 2026-08-03
 

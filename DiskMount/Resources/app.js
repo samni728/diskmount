@@ -35,6 +35,9 @@
       noMountPoint: 'Not mounted',
       processing: 'Working…',
       mountNTFS: 'Mount NTFS Read/Write',
+      ntfsWritable: 'NTFS Writable',
+      autoReadWriteOn: 'Auto Read/Write: On',
+      autoReadWriteOff: 'Auto Read/Write: Off',
       mount: 'Mount',
       openFinder: 'Open in Finder',
       unmount: 'Unmount Volume',
@@ -50,7 +53,9 @@
       advancedConfirmLimit: 'DiskMount will not bypass SIP, change disk format, or force a sealed macOS system volume to become writable.',
       confirmAdvanced: 'I understand, unlock this volume',
       empty: 'No external physical disk detected.',
-      emptyHint: 'Insert a USB drive or external disk, then refresh.'
+      emptyHint: 'Insert a USB drive or external disk, then refresh.',
+      openPrivacySettings: 'Open Privacy Settings',
+      privacyHint: 'Enable Full Disk Access for DiskMount, fully quit and reopen it, then try again.'
     },
     zh: {
       eyebrow: '磁盘控制',
@@ -87,6 +92,9 @@
       noMountPoint: '尚未挂载',
       processing: '处理中…',
       mountNTFS: 'NTFS 读写加载',
+      ntfsWritable: 'NTFS 可写',
+      autoReadWriteOn: '自动读写：已开启',
+      autoReadWriteOff: '自动读写：未开启',
       mount: '加载',
       openFinder: '在 Finder 打开',
       unmount: '卸载卷',
@@ -102,7 +110,9 @@
       advancedConfirmLimit: 'DiskMount 不会绕过 SIP、改变磁盘格式，也不会强制将已封存的 macOS 系统卷变为可写。',
       confirmAdvanced: '我了解风险，解锁该卷',
       empty: '没有检测到外接物理磁盘。',
-      emptyHint: '插入 U 盘或移动硬盘后点击刷新。'
+      emptyHint: '插入 U 盘或移动硬盘后点击刷新。',
+      openPrivacySettings: '打开隐私设置',
+      privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”，完全退出并重新打开后再试。'
     }
   };
 
@@ -164,14 +174,16 @@
     proButton.title = proMode ? t('expertHideTitle') : t('expertShowTitle');
   };
 
-  const renderDevice = (device, busyID, dependencyAvailable, advancedAuthorized) => {
+  const renderDevice = (device, busyID, dependencyAvailable, advancedAuthorized, autoMountEnabled) => {
     const busy = busyID === device.id;
     const status = device.mounted
       ? (device.writable ? t('mountedWritable') : t('mountedReadOnly'))
       : t('notMounted');
     const fileSystem = device.fileSystem || device.content || t('unknown');
     let primaryAction = '';
-    if (!device.isProtected && device.isNTFS) {
+    if (!device.isProtected && device.isNTFS && device.mounted && device.writable) {
+      primaryAction = `<button class="action writable-state" disabled>${t('ntfsWritable')}</button>`;
+    } else if (!device.isProtected && device.isNTFS) {
       primaryAction = `<button class="action primary" data-action="mountNTFS" data-device="${escapeHTML(device.id)}" ${busy || !dependencyAvailable ? 'disabled' : ''}>${busy ? t('processing') : t('mountNTFS')}</button>`;
     } else if (!device.isProtected && !device.mounted) {
       primaryAction = `<button class="action primary" data-action="mount" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${busy ? t('processing') : t('mount')}</button>`;
@@ -180,6 +192,10 @@
     const mountedActions = device.mounted && !device.isProtected
       ? `<button class="action" data-action="open" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('openFinder')}</button>
          <button class="action" data-action="unmount" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('unmount')}</button>`
+      : '';
+
+    const autoMountAction = device.isNTFS && !device.isProtected
+      ? `<button class="action auto-toggle ${autoMountEnabled ? 'active' : ''}" data-action="setAutoMountNTFS" data-enabled="${autoMountEnabled ? 'false' : 'true'}" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${autoMountEnabled ? t('autoReadWriteOn') : t('autoReadWriteOff')}</button>`
       : '';
 
     let finalActions;
@@ -193,7 +209,7 @@
         : `<button class="action primary" data-action="mountProtected" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${busy ? t('processing') : t('mountAdvanced')}</button>`;
       finalActions = `<div class="protected-note">${t('advancedUnlocked')}</div>${advancedActions}`;
     } else {
-      finalActions = `${primaryAction}${mountedActions}<button class="action danger" data-action="eject" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('eject')}</button>`;
+      finalActions = `${primaryAction}${mountedActions}${autoMountAction}<button class="action danger" data-action="eject" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('eject')}</button>`;
     }
 
     return `<article class="device ${device.isProtected ? 'protected' : ''}">
@@ -226,7 +242,10 @@
       : `<span class="dot missing"></span><span>${t('engineMissing')}</span>`;
 
     if (state.error) {
-      noticeElement.innerHTML = `<div class="notice error">${escapeHTML(state.error)}</div>`;
+      const permissionAction = state.removableVolumePermissionRequired
+        ? `<div class="permission-actions"><span>${t('privacyHint')}</span><button class="action privacy-button" data-action="openPrivacySettings">${t('openPrivacySettings')}</button></div>`
+        : '';
+      noticeElement.innerHTML = `<div class="notice error">${escapeHTML(state.error)}${permissionAction}</div>`;
     } else if (state.message) {
       noticeElement.innerHTML = `<div class="notice success">${escapeHTML(state.message)}</div>`;
     } else {
@@ -234,8 +253,9 @@
     }
 
     const authorizedDevices = new Set(state.authorizedProtectedDeviceIDs || []);
+    const autoMountDevices = new Set(state.autoMountNTFSPersistentIDs || []);
     devicesElement.innerHTML = state.devices.length
-      ? state.devices.map(device => renderDevice(device, state.busyDeviceID, state.dependency.available, authorizedDevices.has(device.id))).join('')
+      ? state.devices.map(device => renderDevice(device, state.busyDeviceID, state.dependency.available, authorizedDevices.has(device.id), autoMountDevices.has(device.persistentID))).join('')
       : `<div class="empty">${t('empty')}<br>${t('emptyHint')}</div>`;
   };
 
@@ -294,6 +314,10 @@
       if (pendingProtectedDeviceID) send('authorizeProtected', pendingProtectedDeviceID);
       protectedConfirm.classList.add('hidden');
       pendingProtectedDeviceID = null;
+      return;
+    }
+    if (action === 'setAutoMountNTFS') {
+      send(action, button.dataset.device, { enabled: button.dataset.enabled === 'true' });
       return;
     }
     send(action, button.dataset.device);

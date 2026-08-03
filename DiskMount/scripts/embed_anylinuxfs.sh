@@ -79,7 +79,7 @@ while IFS= read -r executable; do
   if file "$executable" | grep -q 'Mach-O'; then
     case "${executable:t}" in
       anylinuxfs|init-rootfs)
-        codesign --force --options runtime --entitlements "$ROOT_DIR/Vendor/anylinuxfs.entitlements" --sign "$SIGN_IDENTITY" "$executable"
+        codesign --force --options runtime --identifier "com.samni.DiskMount" --entitlements "$ROOT_DIR/Vendor/anylinuxfs.entitlements" --sign "$SIGN_IDENTITY" "$executable"
         ;;
       gvproxy)
         codesign --force --options runtime --entitlements "$ROOT_DIR/Vendor/virtualization.entitlements" --sign "$SIGN_IDENTITY" "$executable"

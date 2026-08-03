@@ -17,7 +17,7 @@
 
 # DiskMount
 
-Current version: **0.2.0**
+Current version: **0.2.2**
 
 DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, unmount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format.
 
@@ -54,27 +54,34 @@ Safety boundaries remain enforced in Swift, not only in the WebUI:
 
 ![Expert Mode per-volume authorization](docs/screenshots/diskmount-expert-en.png)
 
-## NTFS authorization fix in 0.2.0
+## NTFS authorization and removable-volume access
 
 Earlier builds launched `anylinuxfs` directly as root through the macOS authorization dialog. Unlike `sudo`, that mechanism did not provide `SUDO_UID` and `SUDO_GID`, so `anylinuxfs` could not identify the desktop user and rejected the mount.
 
-0.2.0 preserves the macOS administrator prompt while forwarding the invoking user identity expected by `anylinuxfs`. This matches the privilege model of `sudo anylinuxfs ...` without storing or reading the administrator password.
+0.2.0 forwarded the invoking user identity expected by `anylinuxfs`, but the AppleScript authorization chain could still be denied raw-device access by macOS privacy controls.
+
+0.2.2 launches the bundled engine through a real `/usr/bin/sudo` process from DiskMount's user context. The password is entered into a native secure field, passed directly to `sudo` through standard input, cleared from the field immediately, and never saved to disk or preferences. The engine performs the actual raw-device check; if it fails after unmounting the NTFS volume, DiskMount restores the normal macOS read-only mount automatically.
+
+After the first successful NTFS read/write mount, DiskMount remembers that physical disk and partition. While the app remains open, reinserting it triggers an automatic read/write mount using macOS's maintained `sudo` authorization timestamp. Passwords are never persisted. Use the per-disk **Auto Read/Write** control to disable this behavior.
 
 ## Requirements
 
 - Apple Silicon Mac: M1, M2, M3, M4, M5, or later;
 - macOS 26 or later;
 - network access for the first Alpine microVM root-file-system initialization;
-- administrator approval when a mount operation requires elevated access.
+- administrator approval when a mount operation requires elevated access;
+- user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.0 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.2 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.0-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.2-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
+
+The first NTFS read/write mount may require removable-volume privacy access and an administrator password. DiskMount handles the password transiently only to feed the system `sudo` process; it does not log or persist it.
 
 The DMG bundles the ARM64 `anylinuxfs` executable, Linux kernel, VM helpers, modules, and `libblkid`. End users do not need Homebrew, Xcode, XcodeGen, or a separately installed anylinuxfs package.
 
@@ -108,9 +115,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.1 -m "DiskMount 0.2.1"
+git tag -a v0.2.2 -m "DiskMount 0.2.2"
 git push origin main
-git push origin v0.2.1
+git push origin v0.2.2
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.

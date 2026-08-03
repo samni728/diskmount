@@ -154,6 +154,19 @@ button {
 .notice.success { color: var(--ok); background: color-mix(in srgb, var(--ok) 11%, transparent); }
 .notice.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 11%, transparent); }
 
+.permission-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.permission-actions span { flex: 1 1 auto; }
+.privacy-button { flex: 0 0 auto; color: white; background: var(--danger); }
+
 .pro-confirm {
   flex: 0 0 auto;
   margin-bottom: 8px;
@@ -244,8 +257,12 @@ button {
 }
 
 .action.primary { color: white; background: var(--accent); }
+.action.writable-state { color: white; background: var(--ok); }
+.action.auto-toggle { color: var(--muted); background: transparent; border: 1px solid var(--line); }
+.action.auto-toggle.active { color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, transparent); }
 .action.danger { color: var(--danger); background: transparent; border: 1px solid var(--line); }
 .action:disabled { opacity: .42; }
+.action.writable-state:disabled { opacity: 1; }
 
 .protected-note {
   width: 100%;

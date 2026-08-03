@@ -1,20 +1,28 @@
 import AppKit
 import Foundation
+import OSLog
 import WebKit
 
 final class WebPanelController: NSViewController, WKScriptMessageHandler {
+    private static let autoMountPreferenceKey = "AutoMountNTFSPersistentIDs"
     private let diskService = DiskService()
     private let anyLinuxFS = AnyLinuxFSService()
     private let workerQueue = DispatchQueue(label: "com.samni.DiskMount.worker", qos: .userInitiated)
+    private let logger = Logger(subsystem: "com.samni.DiskMount", category: "disk-actions")
     private var webView: WKWebView!
     private var devices: [DiskDevice] = []
     private var busyDeviceID: String?
     private var message: String?
     private var errorMessage: String?
+    private var removableVolumePermissionRequired = false
     private var refreshTimer: Timer?
     private var proMode = false
     private var language = "en"
     private var authorizedProtectedDeviceIDs: Set<String> = []
+    private var autoMountNTFSPersistentIDs = Set(
+        UserDefaults.standard.stringArray(forKey: WebPanelController.autoMountPreferenceKey) ?? []
+    )
+    private var autoMountAttempts: Set<String> = []
 
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -116,6 +124,29 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             publish()
         case "openProject", "starProject":
             openProjectPage()
+        case "openPrivacySettings":
+            openRemovableVolumePrivacySettings()
+        case "setAutoMountNTFS":
+            guard let deviceID,
+                  let device = devices.first(where: { $0.id == deviceID }),
+                  device.isNTFS,
+                  !device.isProtected else {
+                publish(error: localized(zh: "无法为该卷更改自动读写设置。", en: "Automatic read/write settings are unavailable for this volume."))
+                return
+            }
+            let enabled = payload["enabled"] as? Bool ?? false
+            if enabled {
+                autoMountNTFSPersistentIDs.insert(device.persistentID)
+            } else {
+                autoMountNTFSPersistentIDs.remove(device.persistentID)
+            }
+            saveAutoMountPreferences()
+            self.message = localized(
+                zh: enabled ? "已记住 \(device.name)；下次插入时将自动尝试 NTFS 读写加载。" : "已关闭 \(device.name) 的自动 NTFS 读写加载。",
+                en: enabled ? "Remembered \(device.name). DiskMount will try read/write mounting when it is inserted again." : "Disabled automatic NTFS read/write mounting for \(device.name)."
+            )
+            errorMessage = nil
+            publish()
         case "quit":
             NSApp.terminate(nil)
         case "mount", "unmount", "eject", "mountNTFS", "open", "mountProtected", "unmountProtected":
@@ -154,10 +185,12 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 DispatchQueue.main.async {
                     self.devices = devices
                     self.authorizedProtectedDeviceIDs.formIntersection(devices.map(\.id))
+                    self.autoMountAttempts.formIntersection(devices.map(\.persistentID))
                     if !silent {
                         self.errorMessage = nil
                     }
                     self.publish()
+                    self.performNextAutomaticMountIfNeeded()
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -172,6 +205,9 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func perform(action: String, on device: DiskDevice) {
         busyDeviceID = device.id
+        if action == "mountNTFS" {
+            autoMountAttempts.insert(device.persistentID)
+        }
         message = nil
         errorMessage = nil
         publish()
@@ -225,14 +261,24 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 let refreshed = (try? self.diskService.listExternalVolumes(includeAdvanced: self.proMode)) ?? self.devices
                 DispatchQueue.main.async {
                     self.devices = refreshed
+                    if action == "mountNTFS" {
+                        self.autoMountNTFSPersistentIDs.insert(device.persistentID)
+                        self.saveAutoMountPreferences()
+                    }
                     self.busyDeviceID = nil
                     self.message = successMessage
                     self.errorMessage = nil
+                    self.removableVolumePermissionRequired = false
                     self.publish()
+                    self.performNextAutomaticMountIfNeeded()
                 }
             } catch {
+                self.logger.error("Action \(action, privacy: .public) on \(device.devicePath, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
                 DispatchQueue.main.async {
                     self.busyDeviceID = nil
+                    if case AnyLinuxFSError.fullDiskAccessRequired = error {
+                        self.removableVolumePermissionRequired = true
+                    }
                     self.publish(error: self.localizedErrorDescription(error))
                 }
             }
@@ -243,6 +289,30 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         errorMessage = error
         message = nil
         publish()
+    }
+
+    private func saveAutoMountPreferences() {
+        UserDefaults.standard.set(
+            autoMountNTFSPersistentIDs.sorted(),
+            forKey: Self.autoMountPreferenceKey
+        )
+    }
+
+    private func performNextAutomaticMountIfNeeded() {
+        guard busyDeviceID == nil,
+              let device = devices.first(where: {
+                  $0.isNTFS
+                      && !$0.isProtected
+                      && !$0.writable
+                      && autoMountNTFSPersistentIDs.contains($0.persistentID)
+                      && !autoMountAttempts.contains($0.persistentID)
+              }) else { return }
+        autoMountAttempts.insert(device.persistentID)
+        message = localized(
+            zh: "已识别记住的磁盘 \(device.name)，正在自动启用 NTFS 读写…",
+            en: "Recognized \(device.name). Enabling NTFS read/write automatically…"
+        )
+        perform(action: "mountNTFS", on: device)
     }
 
     private func openProjectPage() {
@@ -256,16 +326,41 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         }
     }
 
+    private func openRemovableVolumePrivacySettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
+        }
+        publish(error: localized(
+            zh: "无法打开系统设置。请手动前往“隐私与安全性”→“完全磁盘访问权限”。",
+            en: "Could not open System Settings. Go to Privacy & Security → Full Disk Access."
+        ))
+    }
+
     private func localized(zh: String, en: String) -> String {
         language == "zh" ? zh : en
     }
 
     private func localizedErrorDescription(_ error: Error) -> String {
-        if error is AnyLinuxFSError {
-            return localized(
-                zh: "NTFS 运行时不可用，无法进行读写加载。",
-                en: "The NTFS runtime is unavailable, so read/write mounting cannot continue."
-            )
+        if let anyLinuxFSError = error as? AnyLinuxFSError {
+            switch anyLinuxFSError {
+            case .notInstalled:
+                return localized(
+                    zh: "NTFS 运行时不可用，无法进行读写加载。",
+                    en: "The NTFS runtime is unavailable, so read/write mounting cannot continue."
+                )
+            case .fullDiskAccessRequired:
+                return localized(
+                    zh: "macOS 已阻止 NTFS 引擎读取原始磁盘。DiskMount 已尝试恢复普通只读挂载；请确认已开启“完全磁盘访问权限”，完全退出并重新打开 App 后再试。",
+                    en: "macOS blocked the NTFS engine from reading the raw disk. DiskMount attempted to restore the normal read-only mount. Confirm Full Disk Access, fully quit and reopen the app, then try again."
+                )
+            }
         }
         if error is DiskServiceError {
             return localized(zh: "无法在 Finder 中打开该磁盘。", en: "Could not open this disk in Finder.")
@@ -283,15 +378,17 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.0",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.2",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,
             language: language,
             authorizedProtectedDeviceIDs: authorizedProtectedDeviceIDs.sorted(),
+            autoMountNTFSPersistentIDs: autoMountNTFSPersistentIDs.sorted(),
             busyDeviceID: busyDeviceID,
             message: message,
-            error: errorMessage
+            error: errorMessage,
+            removableVolumePermissionRequired: removableVolumePermissionRequired
         )
         guard let data = try? JSONEncoder().encode(state),
               let json = String(data: data, encoding: .utf8) else { return }

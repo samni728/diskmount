@@ -17,7 +17,7 @@
 
 # DiskMount
 
-当前版本：**0.2.0**
+当前版本：**0.2.2**
 
 DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提供加载、卸载、Finder 打开和安全弹出操作。NTFS 卷通过 App 内嵌的 `anylinuxfs` 运行时以读写方式重新加载，不会改变原有文件系统格式。
 
@@ -54,27 +54,34 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 
 ![专家模式的单卷二次授权](docs/screenshots/diskmount-expert-en.png)
 
-## 0.2.0 的 NTFS 授权修复
+## NTFS 管理员授权与可移动卷权限
 
 旧版通过 macOS 管理员授权窗口把 `anylinuxfs` 直接作为 root 进程启动。这种方式不像 `sudo` 那样提供 `SUDO_UID` 和 `SUDO_GID`，因此 anylinuxfs 无法判断真实桌面用户并主动拒绝挂载。
 
-0.2.0 保留 macOS 系统管理员授权窗口，同时传入 anylinuxfs 所需的真实用户身份，等价于终端中的 `sudo anylinuxfs ...` 权限模型。DiskMount 不会读取或保存管理员密码。
+0.2.0 已传入 anylinuxfs 所需的真实用户身份，但 AppleScript 管理员授权链仍可能被 macOS 隐私控制拒绝原始磁盘访问。
+
+0.2.2 改为从 DiskMount 的当前用户上下文，通过真实的 `/usr/bin/sudo` 进程启动内嵌引擎。密码在原生安全输入框中输入，只通过标准输入交给 `sudo`，随后立即清空输入框，不会写入磁盘、偏好设置或日志。由引擎执行真实原始磁盘检查；如果引擎在卸载 NTFS 后失败，DiskMount 会自动恢复 macOS 普通只读挂载。
+
+第一次成功以 NTFS 读写模式加载后，DiskMount 会记住该物理磁盘与分区。当 App 保持运行时，再次插入会自动尝试读写加载，并使用 macOS 持续维护的 `sudo` 授权时间戳。密码不会被持久化；可通过每块磁盘上的“自动读写”按钮关闭。
 
 ## 系统要求
 
 - Apple Silicon：M1、M2、M3、M4、M5 或后续芯片；
 - macOS 26 或更高版本；
 - 首次初始化 Alpine microVM 根文件系统时需要网络；
-- 挂载需要更高权限时，需通过 macOS 管理员授权。
+- 挂载需要更高权限时，需通过 macOS 管理员授权；
+- 第一次进行 NTFS 原始磁盘访问时，需允许访问可移动卷。
 
-0.2.0 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
+0.2.2 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
 
 ## 安装
 
-1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.0-macOS26.dmg`；
+1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.2-macOS26.dmg`；
 2. 打开 DMG，将 `DiskMount.app` 拖入“应用程序”；
 3. 从“应用程序”启动 DiskMount；
 4. 首次显示面板后，App 会继续常驻顶部菜单栏。
+
+第一次进行 NTFS 读写加载时，可能需要允许“可移动卷访问”并输入管理员密码。DiskMount 仅为把密码交给系统 `sudo` 进程而短暂处理，不会记录或持久化密码。
 
 DMG 内嵌 ARM64 的 anylinuxfs、Linux kernel、VM helpers、modules 和 `libblkid`。最终用户不需要安装 Homebrew、Xcode、XcodeGen 或独立的 anylinuxfs。
 
@@ -111,9 +118,9 @@ cd DiskMount
 
 ```bash
 # 先更新 VERSION 和更新说明
-git tag -a v0.2.1 -m "DiskMount 0.2.1"
+git tag -a v0.2.2 -m "DiskMount 0.2.2"
 git push origin main
-git push origin v0.2.1
+git push origin v0.2.2
 ```
 
 如未配置 Developer ID 签名和公证 Secrets，自动产物使用 ad-hoc 签名。详细维护清单见 [RELEASING.md](RELEASING.md)。

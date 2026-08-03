@@ -29,10 +29,18 @@ final class AnyLinuxFSService {
         guard let path = executablePath else {
             throw AnyLinuxFSError.notInstalled
         }
-        _ = try CommandRunner.runAsAdministrator(
-            path,
-            arguments: ["mount", devicePath, "--remount", "--ignore-permissions", "--window", "false"]
-        )
+        do {
+            _ = try CommandRunner.runNTFSMountAsAdministrator(
+                path,
+                devicePath: devicePath,
+                arguments: ["mount", devicePath, "--remount", "--ignore-permissions", "--window", "false"]
+            )
+        } catch {
+            if Self.isRawDiskPermissionError(error) {
+                throw AnyLinuxFSError.fullDiskAccessRequired
+            }
+            throw error
+        }
     }
 
     func unmount(devicePath: String) throws {
@@ -41,12 +49,26 @@ final class AnyLinuxFSService {
         }
         _ = try CommandRunner.runAsAdministrator(path, arguments: ["unmount", devicePath])
     }
+
+    static func isRawDiskPermissionError(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("cannot probe")
+            || message.contains("insufficient permissions")
+            || message.contains("operation not permitted")
+            || message.contains("file-read-data")
+    }
 }
 
 enum AnyLinuxFSError: LocalizedError {
     case notInstalled
+    case fullDiskAccessRequired
 
     var errorDescription: String? {
-        "未检测到 anylinuxfs。请先执行：brew tap nohajc/anylinuxfs && brew install anylinuxfs"
+        switch self {
+        case .notInstalled:
+            return "未检测到 anylinuxfs。请先执行：brew tap nohajc/anylinuxfs && brew install anylinuxfs"
+        case .fullDiskAccessRequired:
+            return "macOS 阻止了 NTFS 引擎读取原始磁盘。"
+        }
     }
 }

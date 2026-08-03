@@ -20,7 +20,28 @@ final class CommandRunnerTests: XCTestCase {
 
         XCTAssertEqual(
             command,
-            "'/usr/bin/env' 'SUDO_UID=501' 'SUDO_GID=20' '/Applications/Disk Mount/anylinuxfs' 'mount' '/dev/disk6s1'"
+            "'/usr/bin/sudo' '-n' '-u' '#0' '/usr/bin/env' 'SUDO_UID=501' 'SUDO_GID=20' '/Applications/Disk Mount/anylinuxfs' 'mount' '/dev/disk6s1'"
         )
     }
+
+    func testAnyLinuxFSRecognizesRawDiskPrivacyDenial() {
+        let error = CommandError.failed(
+            executable: "/path/to/anylinuxfs",
+            exitCode: 1,
+            message: "macOS: Error: Cannot probe /dev/disk6s1: LibErr(0); Insufficient permissions?"
+        )
+
+        XCTAssertTrue(AnyLinuxFSService.isRawDiskPermissionError(error))
+    }
+
+    func testAnyLinuxFSDoesNotMisclassifyGenericFailure() {
+        let error = CommandError.failed(
+            executable: "/path/to/anylinuxfs",
+            exitCode: 1,
+            message: "VM exited with status 1"
+        )
+
+        XCTAssertFalse(AnyLinuxFSService.isRawDiskPermissionError(error))
+    }
+
 }

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import IOKit
 
 final class DiskService {
     private let diskutil = "/usr/sbin/diskutil"
@@ -9,6 +10,7 @@ final class DiskService {
         let wholeDisk: String
         let content: String
         let size: UInt64
+        let wholeDiskSize: UInt64
         let forceProtected: Bool
     }
 
@@ -28,7 +30,12 @@ final class DiskService {
         var candidates: [Candidate] = []
         for disk in disks {
             guard let wholeDisk = disk["DeviceIdentifier"] as? String else { continue }
-            collectPartitions(from: disk, wholeDisk: wholeDisk, into: &candidates)
+            collectPartitions(
+                from: disk,
+                wholeDisk: wholeDisk,
+                wholeDiskSize: unsignedInteger(disk["Size"]),
+                into: &candidates
+            )
         }
 
         let bootWholeDisks = bootRelatedWholeDisks(in: candidates)
@@ -42,6 +49,7 @@ final class DiskService {
                 wholeDisk: candidate.wholeDisk,
                 fallbackContent: candidate.content,
                 fallbackSize: candidate.size,
+                wholeDiskSize: candidate.wholeDiskSize,
                 forceProtected: candidate.forceProtected || protectedWholeDisks.contains(candidate.wholeDisk)
             )
         }.filter { includeAdvanced || !$0.isProtected }.sorted { lhs, rhs in
@@ -80,6 +88,7 @@ final class DiskService {
     private func collectPartitions(
         from item: [String: Any],
         wholeDisk: String,
+        wholeDiskSize: UInt64,
         into output: inout [Candidate]
     ) {
         if let partitions = item["Partitions"] as? [[String: Any]] {
@@ -90,10 +99,16 @@ final class DiskService {
                         wholeDisk: wholeDisk,
                         content: partition["Content"] as? String ?? "",
                         size: unsignedInteger(partition["Size"]),
+                        wholeDiskSize: wholeDiskSize,
                         forceProtected: false
                     ))
                 }
-                collectPartitions(from: partition, wholeDisk: wholeDisk, into: &output)
+                collectPartitions(
+                    from: partition,
+                    wholeDisk: wholeDisk,
+                    wholeDiskSize: wholeDiskSize,
+                    into: &output
+                )
             }
         }
     }
@@ -103,6 +118,7 @@ final class DiskService {
         wholeDisk: String,
         fallbackContent: String,
         fallbackSize: UInt64,
+        wholeDiskSize: UInt64,
         forceProtected: Bool
     ) throws -> DiskDevice {
         let result = try CommandRunner.run(diskutil, arguments: ["info", "-plist", "/dev/\(identifier)"])
@@ -125,9 +141,18 @@ final class DiskService {
         let mountPoint = diskutilMountPoint ?? fallbackMountPoint
         let unnamedAndUnavailable = volumeName.isEmpty && mountPoint == nil && !isNTFS && fileSystem.isEmpty
         let isProtected = forceProtected || isAuxiliaryContent(content) || unnamedAndUnavailable
+        let partitionOffset = unsignedInteger(info["PartitionMapPartitionOffset"])
+        let serial = hardwareSerial(for: wholeDisk)
+        let identitySource: String
+        if let serial, !serial.isEmpty {
+            identitySource = "serial:\(serial)|offset:\(partitionOffset)|size:\(fallbackSize)"
+        } else {
+            identitySource = "disk-size:\(wholeDiskSize)|offset:\(partitionOffset)|size:\(fallbackSize)|name:\(volumeName.lowercased())|type:\(combinedType)"
+        }
 
         return DiskDevice(
             id: identifier,
+            persistentID: stableHash(identitySource),
             wholeDiskIdentifier: wholeDisk,
             name: volumeName.isEmpty ? (mediaName.isEmpty ? identifier : mediaName) : volumeName,
             fileSystem: fileSystem.isEmpty ? (typeBundle.isEmpty ? content : typeBundle) : fileSystem,
@@ -201,6 +226,7 @@ final class DiskService {
                     wholeDisk: store.wholeDisk,
                     content: "Apple_APFS_Volume",
                     size: unsignedInteger(volume["CapacityInUse"]),
+                    wholeDiskSize: store.wholeDiskSize,
                     forceProtected: technicalRole
                 ))
             }
@@ -217,6 +243,38 @@ final class DiskService {
         return exact.contains(normalized)
             || normalized.contains("recovery")
             || normalized.contains("preboot")
+    }
+
+    private func hardwareSerial(for wholeDisk: String) -> String? {
+        guard let matching = IOBSDNameMatching(kIOMainPortDefault, 0, wholeDisk),
+              case let service = IOServiceGetMatchingService(kIOMainPortDefault, matching),
+              service != IO_OBJECT_NULL else { return nil }
+        defer { IOObjectRelease(service) }
+
+        let options = IOOptionBits(kIORegistryIterateRecursively | kIORegistryIterateParents)
+        for key in ["USB Serial Number", "Serial Number"] {
+            guard let value = IORegistryEntrySearchCFProperty(
+                service,
+                kIOServicePlane,
+                key as CFString,
+                kCFAllocatorDefault,
+                options
+            ) else { continue }
+            if let serial = value as? String,
+               !serial.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+                return serial.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            }
+        }
+        return nil
+    }
+
+    private func stableHash(_ value: String) -> String {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in value.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1_099_511_628_211
+        }
+        return String(format: "%016llx", hash)
     }
 
     private func string(_ value: Any?) -> String {
