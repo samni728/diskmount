@@ -162,9 +162,15 @@ private final class SudoSession {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.15))
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = "DiskMount 需要管理员授权"
-            alert.informativeText = "密码只会交给 macOS sudo 进程，DiskMount 不会保存。\nAdministrator access is required for NTFS read/write. Your password is not stored."
-            let passwordField = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+            alert.messageText = "DiskMount 需要管理员授权 / Administrator Authorization"
+            alert.informativeText = """
+            此授权仅用于 DiskMount 的 NTFS 读写挂载与失败恢复。密码只通过标准输入交给 macOS sudo，不保存、不记录、不上传。
+
+            This authorization is used only for DiskMount NTFS mounting and failure recovery. The password is passed to macOS sudo via standard input and is never stored, logged, or uploaded.
+
+            原始磁盘访问还可能需要在“隐私与安全性”中开启“完全磁盘访问权限”和“可移动卷”。
+            """
+            let passwordField = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 380, height: 24))
             passwordField.placeholderString = "macOS 管理员密码"
             alert.accessoryView = passwordField
             alert.addButton(withTitle: "继续 / Continue")

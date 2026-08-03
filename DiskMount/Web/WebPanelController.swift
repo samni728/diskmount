@@ -357,8 +357,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 )
             case .fullDiskAccessRequired:
                 return localized(
-                    zh: "macOS 已阻止 NTFS 引擎读取原始磁盘。DiskMount 已尝试恢复普通只读挂载；请确认已开启“完全磁盘访问权限”，完全退出并重新打开 App 后再试。",
-                    en: "macOS blocked the NTFS engine from reading the raw disk. DiskMount attempted to restore the normal read-only mount. Confirm Full Disk Access, fully quit and reopen the app, then try again."
+                    zh: "macOS 已阻止 NTFS 引擎读取原始磁盘。DiskMount 已尝试恢复普通只读挂载；请确认已为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开 App 后再试。",
+                    en: "macOS blocked the NTFS engine from reading the raw disk. DiskMount attempted to restore the normal read-only mount. Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen the app, then try again."
                 )
             }
         }
@@ -378,7 +378,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.2",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.3",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,

@@ -17,7 +17,7 @@
 
 # DiskMount
 
-Current version: **0.2.2**
+Current version: **0.2.3**
 
 DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, unmount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format.
 
@@ -34,6 +34,7 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 - device name, identifier, whole disk, file system, capacity, mount point, and write state;
 - regular mount/unmount operations for FAT, exFAT, and APFS data volumes;
 - NTFS read/write mounting through bundled `anylinuxfs 0.18.0`;
+- remembers per-disk Auto Read/Write preferences and automatically retries recognized NTFS disks while the app is running;
 - open mounted volumes in Finder and safely eject external disks;
 - fixed header and footer with an independently scrollable device list;
 - project link and Star button inside the app.
@@ -54,15 +55,33 @@ Safety boundaries remain enforced in Swift, not only in the WebUI:
 
 ![Expert Mode per-volume authorization](docs/screenshots/diskmount-expert-en.png)
 
-## NTFS authorization and removable-volume access
+## Permissions and authorization
 
-Earlier builds launched `anylinuxfs` directly as root through the macOS authorization dialog. Unlike `sudo`, that mechanism did not provide `SUDO_UID` and `SUDO_GID`, so `anylinuxfs` could not identify the desktop user and rejected the mount.
+DiskMount may need three separate macOS permissions. They are controlled by macOS and serve different purposes.
 
-0.2.0 forwarded the invoking user identity expected by `anylinuxfs`, but the AppleScript authorization chain could still be denied raw-device access by macOS privacy controls.
+### Administrator authorization
 
-0.2.2 launches the bundled engine through a real `/usr/bin/sudo` process from DiskMount's user context. The password is entered into a native secure field, passed directly to `sudo` through standard input, cleared from the field immediately, and never saved to disk or preferences. The engine performs the actual raw-device check; if it fails after unmounting the NTFS volume, DiskMount restores the normal macOS read-only mount automatically.
+NTFS read/write mounting needs administrator privileges because the bundled engine must access the external block device and replace macOS's read-only NTFS mount.
 
-After the first successful NTFS read/write mount, DiskMount remembers that physical disk and partition. While the app remains open, reinserting it triggers an automatic read/write mount using macOS's maintained `sudo` authorization timestamp. Passwords are never persisted. Use the per-disk **Auto Read/Write** control to disable this behavior.
+- the password is entered in a native secure field;
+- DiskMount passes it directly to `/usr/bin/sudo` through standard input;
+- the field is cleared immediately after submission;
+- the password is never saved to disk, preferences, logs, analytics, or a network service;
+- the elevated operation is used only for DiskMount's bundled NTFS mount command and, if that command fails, restoration of the normal macOS read-only mount.
+
+DiskMount maintains the macOS `sudo` authorization timestamp while the app remains open. This lets an already authorized, remembered disk mount automatically when reinserted without saving the password. Quitting DiskMount ends this keep-alive behavior; macOS may request authorization again after the app is reopened.
+
+### Full Disk Access and Removable Volumes
+
+macOS may separately block raw external-disk access even after the administrator password is accepted. If this happens, allow DiskMount under:
+
+1. **System Settings → Privacy & Security → Full Disk Access → DiskMount**;
+2. **System Settings → Privacy & Security → Files & Folders → DiskMount → Removable Volumes**, when that switch is shown;
+3. fully quit and reopen DiskMount after changing either permission.
+
+Full Disk Access is a broad permission managed by macOS. DiskMount uses disk access only to discover external volumes, mount or unmount the selected device, provide NTFS read/write access, and restore a safe read-only mount after failure. The app does not format disks or upload their contents.
+
+Expert Mode confirmation is an additional in-app safety check. It does not replace administrator authorization or macOS privacy permissions.
 
 ## Requirements
 
@@ -72,16 +91,16 @@ After the first successful NTFS read/write mount, DiskMount remembers that physi
 - administrator approval when a mount operation requires elevated access;
 - user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.2 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.3 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.2-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.3-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
 
-The first NTFS read/write mount may require removable-volume privacy access and an administrator password. DiskMount handles the password transiently only to feed the system `sudo` process; it does not log or persist it.
+The first NTFS read/write mount may require an administrator password, Full Disk Access, and Removable Volumes access. These approvals are independent. DiskMount explains why each permission is needed and does not persist the administrator password.
 
 The DMG bundles the ARM64 `anylinuxfs` executable, Linux kernel, VM helpers, modules, and `libblkid`. End users do not need Homebrew, Xcode, XcodeGen, or a separately installed anylinuxfs package.
 
@@ -115,9 +134,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.2 -m "DiskMount 0.2.2"
+git tag -a v0.2.3 -m "DiskMount 0.2.3"
 git push origin main
-git push origin v0.2.2
+git push origin v0.2.3
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.

@@ -55,7 +55,7 @@
       empty: 'No external physical disk detected.',
       emptyHint: 'Insert a USB drive or external disk, then refresh.',
       openPrivacySettings: 'Open Privacy Settings',
-      privacyHint: 'Enable Full Disk Access for DiskMount, fully quit and reopen it, then try again.'
+      privacyHint: 'Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen it, then try again.'
     },
     zh: {
       eyebrow: '磁盘控制',
@@ -112,7 +112,7 @@
       empty: '没有检测到外接物理磁盘。',
       emptyHint: '插入 U 盘或移动硬盘后点击刷新。',
       openPrivacySettings: '打开隐私设置',
-      privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”，完全退出并重新打开后再试。'
+      privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开后再试。'
     }
   };
 

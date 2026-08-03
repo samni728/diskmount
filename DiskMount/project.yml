@@ -24,8 +24,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.samni.DiskMount
         PRODUCT_NAME: DiskMount
         ARCHS: arm64
-        MARKETING_VERSION: 0.2.2
-        CURRENT_PROJECT_VERSION: 7
+        MARKETING_VERSION: 0.2.3
+        CURRENT_PROJECT_VERSION: 8
         INFOPLIST_FILE: Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Manual

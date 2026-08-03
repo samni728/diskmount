@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.3 - 2026-08-03
+
+- Clarified that administrator authorization is used only for DiskMount NTFS mounting and failure recovery.
+- Clarified that the administrator password is passed transiently to macOS `sudo` and is never stored, logged, or uploaded.
+- Added explicit Full Disk Access and Removable Volumes permission guidance to the app, Info.plist, and bilingual documentation.
+- Reworked the English and Simplified Chinese README files around the current permission model, installation flow, and safety boundaries.
+- Published the release as a standard GitHub Release rather than a pre-release.
+
 ## 0.2.2 - 2026-08-03
 
 - Fixed the NTFS launch chain so the bundled engine is started through a real `sudo` process after macOS administrator authorization.
