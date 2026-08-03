@@ -1,0 +1,250 @@
+:root {
+  color-scheme: light dark;
+  --bg: rgba(246, 247, 250, .97);
+  --card: rgba(255, 255, 255, .82);
+  --text: #17191d;
+  --muted: #6c717a;
+  --line: rgba(26, 29, 35, .09);
+  --accent: #1667d9;
+  --accent-soft: rgba(22, 103, 217, .11);
+  --ok: #16835f;
+  --warn: #ac6200;
+  --danger: #c43a37;
+  --shadow: 0 10px 28px rgba(20, 24, 31, .09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: rgba(28, 30, 35, .97);
+    --card: rgba(48, 51, 58, .88);
+    --text: #f6f7f9;
+    --muted: #acb1ba;
+    --line: rgba(255, 255, 255, .09);
+    --accent: #68a8ff;
+    --accent-soft: rgba(104, 168, 255, .14);
+    --shadow: 0 12px 28px rgba(0, 0, 0, .24);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  color: var(--text);
+  background: transparent;
+  -webkit-user-select: none;
+}
+
+body { background: var(--bg); }
+
+.shell { padding: 20px 18px 14px; }
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(13, 59, 108, .2));
+}
+
+.toolbar { display: flex; align-items: center; gap: 7px; }
+
+.pro-button {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.pro-button.active { color: white; border-color: var(--warn); background: var(--warn); }
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+
+h1 {
+  margin: 3px 0 0;
+  font-size: 22px;
+  letter-spacing: -.025em;
+}
+
+h1 span { color: var(--muted); font-size: 11px; font-weight: 600; }
+
+button {
+  appearance: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 18px;
+}
+
+.dependency {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 5px 9px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.dot.missing { background: var(--warn); }
+
+.notice {
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.notice.success { color: var(--ok); background: color-mix(in srgb, var(--ok) 11%, transparent); }
+.notice.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 11%, transparent); }
+
+.pro-confirm {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 28%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--card));
+  font-size: 11px;
+}
+
+.pro-confirm p { margin: 5px 0 9px; color: var(--muted); line-height: 1.45; }
+.confirm-actions { display: flex; gap: 7px; }
+.hidden { display: none; }
+
+.devices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 438px;
+  overflow-y: auto;
+}
+
+.device {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.device.protected { border-color: color-mix(in srgb, var(--warn) 24%, var(--line)); }
+
+.device-head { display: flex; justify-content: space-between; gap: 12px; }
+.device-title { min-width: 0; }
+.device-title h2 { overflow: hidden; margin: 0; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.device-title p { margin: 4px 0 0; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+
+.badge {
+  align-self: flex-start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.meta strong { color: var(--text); font-weight: 600; }
+.meta .wide { grid-column: 1 / -1; min-width: 0; }
+.meta .path {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.action {
+  min-height: 29px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.action.primary { color: white; background: var(--accent); }
+.action.danger { color: var(--danger); background: transparent; border: 1px solid var(--line); }
+.action:disabled { opacity: .42; }
+
+.protected-note {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  font-size: 10px;
+}
+
+.empty {
+  padding: 62px 24px;
+  border: 1px dashed var(--line);
+  border-radius: 13px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 13px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.project-row, .footer-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; }
+.project-link { overflow: hidden; padding: 0; color: var(--accent); background: transparent; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.star-button { flex: 0 0 auto; padding: 5px 8px; border-radius: 7px; color: #795600; background: #ffd866; font-size: 10px; font-weight: 750; }
+
+.text-button { padding: 3px 0; color: var(--muted); background: transparent; font-size: 10px; }

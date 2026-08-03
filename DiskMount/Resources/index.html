@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>DiskMount</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <img class="brand-icon" src="logo.png" alt="">
+        <div>
+          <div class="eyebrow">DISK CONTROL</div>
+          <h1>DiskMount <span id="version">0.1.2</span></h1>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="pro-button" class="pro-button" data-action="togglePro" title="显示高级分区">PRO</button>
+        <button class="icon-button" data-action="refresh" title="刷新" aria-label="刷新">↻</button>
+      </div>
+    </header>
+
+    <section id="dependency" class="dependency"></section>
+    <section id="notice" aria-live="polite"></section>
+    <section id="pro-confirm" class="pro-confirm hidden" aria-live="polite">
+      <strong>启用 PRO 查看模式？</strong>
+      <p>将显示系统盘、EFI、Recovery 等高级分区，但它们仍受保护且只能查看，不能加载、卸载或弹出。</p>
+      <div class="confirm-actions">
+        <button class="action" data-action="cancelPro">取消</button>
+        <button class="action primary" data-action="enablePro">我了解风险，启用</button>
+      </div>
+    </section>
+    <section id="devices" class="devices">
+      <div class="empty loading">正在读取外接磁盘…</div>
+    </section>
+
+    <footer>
+      <div class="project-row">
+        <button class="project-link" data-action="openProject">github.com/samni728/diskmount</button>
+        <button class="star-button" data-action="starProject">☆ 给我一个 Star</button>
+      </div>
+      <div class="footer-row">
+        <span>默认仅显示安全的外接数据卷</span>
+        <button class="text-button" data-action="quit">退出 DiskMount</button>
+      </div>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
