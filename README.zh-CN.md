@@ -24,7 +24,14 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 > [!IMPORTANT]
 > DiskMount 不会格式化、抹掉、重新分区或转换磁盘格式。“NTFS 读写加载”只改变当前挂载方式。
 
-![DiskMount 中文界面](docs/screenshots/diskmount-zh.png)
+> [!WARNING]
+> **启用 NTFS 读写前需要完成以下授权：**
+> 1. DiskMount 请求管理员授权时，需要输入管理员密码。该授权仅用于 DiskMount 的 NTFS 挂载和失败恢复；密码不会被保存、记录或上传。
+> 2. 前往 **系统设置 → 隐私与安全性 → 完全磁盘访问权限**，为 **DiskMount** 开启权限。
+> 3. 如果 macOS 显示该选项，还需前往 **系统设置 → 隐私与安全性 → 文件与文件夹 → DiskMount → 可移动卷** 开启权限。
+> 4. 修改上述任一权限后，请完全退出并重新打开 DiskMount。
+
+![DiskMount 0.2.3 中文界面，NTFS 已启用读写](docs/screenshots/diskmount-0.2.3-zh.jpg)
 
 ## 主要功能
 
@@ -53,7 +60,7 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 - 不会强制将已封存的 macOS 系统卷变为可写；
 - 不存在格式转换、抹盘或重新分区功能。
 
-![专家模式的单卷二次授权](docs/screenshots/diskmount-expert-en.png)
+![DiskMount 0.2.3 中文专家模式的单卷二次授权](docs/screenshots/diskmount-0.2.3-expert-zh.jpg)
 
 ## 权限与授权说明
 
@@ -62,6 +69,10 @@ DiskMount 可能需要三类相互独立的 macOS 权限。它们均由 macOS �
 ### 管理员授权
 
 NTFS 读写加载需要管理员权限，因为内嵌引擎必须访问外接磁盘的块设备，并替换 macOS 默认的 NTFS 只读挂载。
+
+![DiskMount 0.2.3 管理员授权提示](docs/screenshots/diskmount-0.2.3-authorization.png)
+
+出现此提示时，请输入 macOS 管理员账户的密码并点击 **继续**。密码只用于当前提权操作：
 
 - 密码在 macOS 原生安全输入框中输入；
 - DiskMount 只通过标准输入把密码直接交给 `/usr/bin/sudo`；

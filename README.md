@@ -24,7 +24,14 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 > [!IMPORTANT]
 > DiskMount never formats, erases, repartitions, or converts a disk. “Mount NTFS Read/Write” changes only the active mount method.
 
-![DiskMount English interface](docs/screenshots/diskmount-en.png)
+> [!WARNING]
+> **Permissions required for NTFS read/write:**
+> 1. Enter an administrator password when DiskMount requests authorization. This authorization is used only for DiskMount's NTFS mount and failure-recovery operations. The password is never stored, logged, or uploaded.
+> 2. Enable **DiskMount** under **System Settings → Privacy & Security → Full Disk Access**.
+> 3. If macOS shows the option, also enable **System Settings → Privacy & Security → Files & Folders → DiskMount → Removable Volumes**.
+> 4. Fully quit and reopen DiskMount after changing either macOS permission.
+
+![DiskMount 0.2.3 English interface showing NTFS writable access](docs/screenshots/diskmount-0.2.3-en.jpg)
 
 ## Features
 
@@ -53,7 +60,7 @@ Safety boundaries remain enforced in Swift, not only in the WebUI:
 - sealed macOS system volumes are not forced writable;
 - no format conversion, erase, or repartition operation exists.
 
-![Expert Mode per-volume authorization](docs/screenshots/diskmount-expert-en.png)
+![DiskMount 0.2.3 Expert Mode per-volume authorization](docs/screenshots/diskmount-0.2.3-expert-en.jpg)
 
 ## Permissions and authorization
 
@@ -62,6 +69,10 @@ DiskMount may need three separate macOS permissions. They are controlled by macO
 ### Administrator authorization
 
 NTFS read/write mounting needs administrator privileges because the bundled engine must access the external block device and replace macOS's read-only NTFS mount.
+
+![DiskMount 0.2.3 administrator authorization prompt](docs/screenshots/diskmount-0.2.3-authorization.png)
+
+When this prompt appears, enter the password for a macOS administrator account and choose **Continue**. The password is used only for the current privileged operation:
 
 - the password is entered in a native secure field;
 - DiskMount passes it directly to `/usr/bin/sudo` through standard input;
