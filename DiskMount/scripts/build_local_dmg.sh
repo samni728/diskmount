@@ -7,7 +7,7 @@ APP_PATH="$BUILD_DIR/DiskMount.app"
 CONTENTS_DIR="$APP_PATH/Contents"
 MODULE_CACHE="$BUILD_DIR/ModuleCache"
 DMG_STAGE="$BUILD_DIR/dmg"
-DMG_PATH="$ROOT_DIR/build/DiskMount-0.1.2-macOS26-unsigned.dmg"
+DMG_PATH="$ROOT_DIR/build/DiskMount-0.1.3-macOS26-unsigned.dmg"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$CONTENTS_DIR/MacOS" "$CONTENTS_DIR/Resources" "$MODULE_CACHE" "$DMG_STAGE"
@@ -33,8 +33,8 @@ plutil -replace CFBundleDevelopmentRegion -string zh_CN "$CONTENTS_DIR/Info.plis
 plutil -replace CFBundleExecutable -string DiskMount "$CONTENTS_DIR/Info.plist"
 plutil -replace CFBundleIdentifier -string com.samni.DiskMount "$CONTENTS_DIR/Info.plist"
 plutil -replace CFBundleName -string DiskMount "$CONTENTS_DIR/Info.plist"
-plutil -replace CFBundleShortVersionString -string 0.1.2 "$CONTENTS_DIR/Info.plist"
-plutil -replace CFBundleVersion -string 3 "$CONTENTS_DIR/Info.plist"
+plutil -replace CFBundleShortVersionString -string 0.1.3 "$CONTENTS_DIR/Info.plist"
+plutil -replace CFBundleVersion -string 4 "$CONTENTS_DIR/Info.plist"
 plutil -replace LSMinimumSystemVersion -string 26.0 "$CONTENTS_DIR/Info.plist"
 plutil -replace CFBundleIconFile -string AppIcon "$CONTENTS_DIR/Info.plist"
 
@@ -65,7 +65,7 @@ ln -s /Applications "$DMG_STAGE/Applications"
 mkdir -p "$ROOT_DIR/build"
 rm -f "$DMG_PATH"
 hdiutil create \
-  -volname "DiskMount 0.1.2" \
+  -volname "DiskMount 0.1.3" \
   -srcfolder "$DMG_STAGE" \
   -ov \
   -format UDZO \

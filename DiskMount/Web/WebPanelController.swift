@@ -91,7 +91,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 return
             }
             guard !device.isProtected else {
-                publish(error: "这是系统或辅助分区，只允许在 PRO 模式中查看，禁止执行磁盘操作。")
+                publish(error: "这是系统或辅助分区，只允许在专家模式中查看，禁止执行磁盘操作。")
                 return
             }
             perform(action: action, on: device)
@@ -194,7 +194,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.2",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.3",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,

@@ -14,11 +14,11 @@
         <img class="brand-icon" src="logo.png" alt="">
         <div>
           <div class="eyebrow">DISK CONTROL</div>
-          <h1>DiskMount <span id="version">0.1.2</span></h1>
+          <h1>DiskMount <span id="version">0.1.3</span></h1>
         </div>
       </div>
       <div class="toolbar">
-        <button id="pro-button" class="pro-button" data-action="togglePro" title="显示高级分区">PRO</button>
+        <button id="pro-button" class="pro-button" data-action="togglePro" title="显示系统与高级分区">专家模式</button>
         <button class="icon-button" data-action="refresh" title="刷新" aria-label="刷新">↻</button>
       </div>
     </header>
@@ -26,11 +26,11 @@
     <section id="dependency" class="dependency"></section>
     <section id="notice" aria-live="polite"></section>
     <section id="pro-confirm" class="pro-confirm hidden" aria-live="polite">
-      <strong>启用 PRO 查看模式？</strong>
-      <p>将显示系统盘、EFI、Recovery 等高级分区，但它们仍受保护且只能查看，不能加载、卸载或弹出。</p>
+      <strong>启用专家模式？</strong>
+      <p>仅建议熟悉 macOS 磁盘结构的用户开启。开启后将显示系统盘、EFI、Recovery 等高级分区，但它们仍受保护且只能查看。</p>
       <div class="confirm-actions">
         <button class="action" data-action="cancelPro">取消</button>
-        <button class="action primary" data-action="enablePro">我了解风险，启用</button>
+        <button class="action primary" data-action="enablePro">我了解风险，进入专家模式</button>
       </div>
     </section>
     <section id="devices" class="devices">

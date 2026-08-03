@@ -73,8 +73,8 @@
       versionElement.textContent = state.version;
       proMode = Boolean(state.proMode);
       proButton.classList.toggle('active', proMode);
-      proButton.textContent = proMode ? 'PRO ON' : 'PRO';
-      proButton.title = proMode ? '关闭高级分区查看' : '显示高级分区';
+      proButton.textContent = proMode ? '专家模式 · 已开启' : '专家模式';
+      proButton.title = proMode ? '退出专家模式' : '显示系统与高级分区';
       dependencyElement.innerHTML = state.dependency.available
         ? `<span class="dot"></span><span>NTFS 引擎可用 · ${escapeHTML(state.dependency.version || state.dependency.path)}</span>`
         : '<span class="dot missing"></span><span>未安装 anylinuxfs，NTFS 读写功能不可用</span>';
