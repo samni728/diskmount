@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,40 +13,55 @@
       <div class="brand">
         <img class="brand-icon" src="logo.png" alt="">
         <div>
-          <div class="eyebrow">DISK CONTROL</div>
-          <h1>DiskMount <span id="version">0.1.3</span></h1>
+          <div class="eyebrow" data-i18n="eyebrow">DISK CONTROL</div>
+          <h1>DiskMount <span id="version">0.2.0</span></h1>
         </div>
       </div>
       <div class="toolbar">
-        <button id="pro-button" class="pro-button" data-action="togglePro" title="显示系统与高级分区">专家模式</button>
-        <button class="icon-button" data-action="refresh" title="刷新" aria-label="刷新">↻</button>
+        <button id="language-button" class="language-button" data-action="toggleLanguage" title="Switch to Chinese">中文</button>
+        <button id="pro-button" class="pro-button" data-action="togglePro" title="Show system and advanced partitions">Expert Mode</button>
+        <button id="refresh-button" class="icon-button" data-action="refresh" title="Refresh" aria-label="Refresh">↻</button>
       </div>
     </header>
 
     <section id="dependency" class="dependency"></section>
     <section id="notice" aria-live="polite"></section>
     <section id="pro-confirm" class="pro-confirm hidden" aria-live="polite">
-      <strong>启用专家模式？</strong>
-      <p>仅建议熟悉 macOS 磁盘结构的用户开启。开启后将显示系统盘、EFI、Recovery 等高级分区，但它们仍受保护且只能查看。</p>
+      <strong data-i18n="expertConfirmTitle">Enable Expert Mode?</strong>
+      <p data-i18n="expertConfirmBody">Recommended only for users familiar with macOS disk structures. System, EFI, and Recovery partitions remain protected and view-only.</p>
       <div class="confirm-actions">
-        <button class="action" data-action="cancelPro">取消</button>
-        <button class="action primary" data-action="enablePro">我了解风险，进入专家模式</button>
+        <button class="action" data-action="cancelPro" data-i18n="cancel">Cancel</button>
+        <button class="action primary" data-action="enablePro" data-i18n="enableExpert">I understand, enable Expert Mode</button>
       </div>
     </section>
     <section id="devices" class="devices">
-      <div class="empty loading">正在读取外接磁盘…</div>
+      <div class="empty loading" data-i18n="loading">Reading external disks…</div>
     </section>
 
     <footer>
       <div class="project-row">
         <button class="project-link" data-action="openProject">github.com/samni728/diskmount</button>
-        <button class="star-button" data-action="starProject">☆ 给我一个 Star</button>
+        <button class="star-button" data-action="starProject" data-i18n="star">☆ Give us a Star</button>
       </div>
       <div class="footer-row">
-        <span>默认仅显示安全的外接数据卷</span>
-        <button class="text-button" data-action="quit">退出 DiskMount</button>
+        <span data-i18n="safeFooter">Safe external data volumes only by default</span>
+        <button class="text-button" data-action="quit" data-i18n="quit">Quit DiskMount</button>
       </div>
     </footer>
+
+    <section id="protected-confirm" class="modal-backdrop hidden" aria-live="polite">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="protected-confirm-title">
+        <div class="modal-kicker" data-i18n="securityWarning">SECURITY WARNING</div>
+        <h2 id="protected-confirm-title" data-i18n="advancedConfirmTitle">Unlock this advanced volume?</h2>
+        <p id="protected-device-name" class="modal-device"></p>
+        <p data-i18n="advancedConfirmBody">This can expose or modify EFI and system-related files. Back up important data first. Access applies only to this volume for the current app session.</p>
+        <p class="modal-limit" data-i18n="advancedConfirmLimit">DiskMount will not bypass SIP, change disk format, or force a sealed macOS system volume to become writable.</p>
+        <div class="confirm-actions modal-actions">
+          <button class="action" data-action="cancelProtectedAccess" data-i18n="cancel">Cancel</button>
+          <button class="action danger-confirm" data-action="confirmProtectedAccess" data-i18n="confirmAdvanced">I understand, unlock this volume</button>
+        </div>
+      </div>
+    </section>
   </main>
   <script src="app.js"></script>
 </body>

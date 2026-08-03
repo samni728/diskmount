@@ -58,7 +58,12 @@ enum CommandRunner {
     }
 
     static func runAsAdministrator(_ executable: String, arguments: [String]) throws -> CommandResult {
-        let command = ([executable] + arguments).map(shellQuote).joined(separator: " ")
+        let command = administratorShellCommand(
+            executable,
+            arguments: arguments,
+            invokingUID: getuid(),
+            invokingGID: getgid()
+        )
         let escapedForAppleScript = command
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -66,8 +71,24 @@ enum CommandRunner {
         return try run("/usr/bin/osascript", arguments: ["-e", script])
     }
 
+    static func administratorShellCommand(
+        _ executable: String,
+        arguments: [String],
+        invokingUID: uid_t,
+        invokingGID: gid_t
+    ) -> String {
+        // `do shell script ... with administrator privileges` starts the child directly as root,
+        // unlike sudo it does not populate SUDO_UID/SUDO_GID. anylinuxfs uses those values to
+        // resolve the real desktop user and intentionally rejects a bare root process.
+        let environment = [
+            "/usr/bin/env",
+            "SUDO_UID=\(invokingUID)",
+            "SUDO_GID=\(invokingGID)"
+        ]
+        return (environment + [executable] + arguments).map(shellQuote).joined(separator: " ")
+    }
+
     static func shellQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }
-

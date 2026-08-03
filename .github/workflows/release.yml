@@ -1,0 +1,63 @@
+name: Build and publish DMG
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate version tag
+        shell: bash
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          test "${GITHUB_REF_NAME}" = "v${VERSION}"
+          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Preserve an existing manual release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "Release already exists; verified manual assets will not be overwritten."
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build self-contained Apple Silicon DMG
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          DMG="${GITHUB_WORKSPACE}/DiskMount/build/DiskMount-${VERSION}-macOS26.dmg"
+          DMG_PATH_OVERRIDE="${DMG}" BUILD_NUMBER="${GITHUB_RUN_NUMBER}" ./DiskMount/scripts/build_local_dmg.sh
+          hdiutil verify "${DMG}"
+          cd "$(dirname "${DMG}")"
+          shasum -a 256 "$(basename "${DMG}")" > "$(basename "${DMG}").sha256"
+
+      - name: Create GitHub Release
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          DMG="DiskMount/build/DiskMount-${VERSION}-macOS26.dmg"
+          gh release create "${GITHUB_REF_NAME}" \
+            "${DMG}" \
+            "${DMG}.sha256" \
+            --title "DiskMount ${VERSION}" \
+            --generate-notes

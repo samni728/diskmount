@@ -18,12 +18,11 @@ final class AnyLinuxFSService {
 
     func dependencyState() -> DependencyState {
         guard let path = executablePath else {
-            return DependencyState(available: false, path: nil, version: nil)
+            return DependencyState(available: false, path: nil, version: nil, bundled: false)
         }
         let rawVersion = try? CommandRunner.run(path, arguments: ["--version"]).stdoutText
-        let bundledSuffix = path.contains("DiskMount.app/Contents/Resources/anylinuxfs") ? " · App 内嵌" : " · 开发环境"
-        let version = (rawVersion ?? "anylinuxfs") + bundledSuffix
-        return DependencyState(available: true, path: path, version: version)
+        let bundled = path.contains("DiskMount.app/Contents/Resources/anylinuxfs")
+        return DependencyState(available: true, path: path, version: rawVersion ?? "anylinuxfs", bundled: bundled)
     }
 
     func mountReadWrite(devicePath: String) throws {

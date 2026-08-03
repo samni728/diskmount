@@ -20,6 +20,7 @@ struct DependencyState: Codable {
     let available: Bool
     let path: String?
     let version: String?
+    let bundled: Bool
 }
 
 struct PanelState: Codable {
@@ -27,6 +28,8 @@ struct PanelState: Codable {
     let devices: [DiskDevice]
     let dependency: DependencyState
     let proMode: Bool
+    let language: String
+    let authorizedProtectedDeviceIDs: [String]
     let busyDeviceID: String?
     let message: String?
     let error: String?

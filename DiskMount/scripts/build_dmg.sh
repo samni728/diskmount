@@ -5,7 +5,9 @@ ROOT_DIR="${0:A:h:h}"
 PROJECT_PATH="$ROOT_DIR/DiskMount.xcodeproj"
 DERIVED_DATA="$ROOT_DIR/build/DerivedData"
 EXPORT_DIR="$ROOT_DIR/build/export"
-DMG_PATH="$ROOT_DIR/build/DiskMount-0.1.3-macOS26.dmg"
+VERSION_FILE="$ROOT_DIR/../VERSION"
+APP_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+DMG_PATH="${DMG_PATH_OVERRIDE:-$ROOT_DIR/build/DiskMount-$APP_VERSION-macOS26.dmg}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-Apple Development: samni728@gmail.com (4BVG532TG3)}"
 
 if [[ ! -d "$PROJECT_PATH" ]]; then
@@ -40,7 +42,7 @@ ln -sfn /Applications "$EXPORT_DIR/Applications"
 rm -f "$DMG_PATH"
 
 hdiutil create \
-  -volname "DiskMount 0.1.3" \
+  -volname "DiskMount $APP_VERSION" \
   -srcfolder "$EXPORT_DIR" \
   -ov \
   -format UDZO \

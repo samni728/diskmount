@@ -54,8 +54,16 @@ final class DiskService {
         _ = try CommandRunner.run(diskutil, arguments: ["mount", device.devicePath])
     }
 
+    func mountProtected(_ device: DiskDevice) throws {
+        _ = try CommandRunner.runAsAdministrator(diskutil, arguments: ["mount", device.devicePath])
+    }
+
     func unmount(_ device: DiskDevice) throws {
         _ = try CommandRunner.run(diskutil, arguments: ["unmount", device.devicePath])
+    }
+
+    func unmountProtected(_ device: DiskDevice) throws {
+        _ = try CommandRunner.runAsAdministrator(diskutil, arguments: ["unmount", device.devicePath])
     }
 
     func eject(_ device: DiskDevice) throws {

@@ -13,6 +13,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private var errorMessage: String?
     private var refreshTimer: Timer?
     private var proMode = false
+    private var language = "en"
+    private var authorizedProtectedDeviceIDs: Set<String> = []
 
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -74,29 +76,72 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         guard message.name == "bridge", let payload = message.body as? [String: Any],
               let action = payload["action"] as? String else { return }
 
+        if let requestedLanguage = payload["language"] as? String,
+           ["en", "zh"].contains(requestedLanguage) {
+            language = requestedLanguage
+        }
         let deviceID = payload["deviceID"] as? String
         switch action {
         case "ready", "refresh":
             refresh()
+        case "setLanguage":
+            self.message = nil
+            errorMessage = nil
+            publish()
         case "setProMode":
             proMode = payload["enabled"] as? Bool ?? false
+            if !proMode {
+                authorizedProtectedDeviceIDs.removeAll()
+                self.message = nil
+                errorMessage = nil
+            }
             refresh()
+        case "authorizeProtected":
+            guard proMode,
+                  let deviceID,
+                  let device = devices.first(where: { $0.id == deviceID }),
+                  device.isProtected else {
+                publish(error: localized(
+                    zh: "只能在专家模式中对当前可见的高级卷授权。",
+                    en: "Only a visible advanced volume can be authorized while Expert Mode is active."
+                ))
+                return
+            }
+            authorizedProtectedDeviceIDs.insert(deviceID)
+            self.message = localized(
+                zh: "已解锁 \(device.name) 的本次会话访问；操作前请确保已备份重要数据。",
+                en: "Unlocked \(device.name) for this session. Back up important data before making changes."
+            )
+            errorMessage = nil
+            publish()
         case "openProject", "starProject":
             openProjectPage()
         case "quit":
             NSApp.terminate(nil)
-        case "mount", "unmount", "eject", "mountNTFS", "open":
+        case "mount", "unmount", "eject", "mountNTFS", "open", "mountProtected", "unmountProtected":
             guard let deviceID, let device = devices.first(where: { $0.id == deviceID }) else {
-                publish(error: "设备状态已变化，请刷新后重试。")
+                publish(error: localized(
+                    zh: "设备状态已变化，请刷新后重试。",
+                    en: "The device state has changed. Refresh and try again."
+                ))
                 return
             }
-            guard !device.isProtected else {
-                publish(error: "这是系统或辅助分区，只允许在专家模式中查看，禁止执行磁盘操作。")
+            if device.isProtected {
+                let allowedAction = ["mountProtected", "unmountProtected", "open"].contains(action)
+                guard proMode, authorizedProtectedDeviceIDs.contains(device.id), allowedAction else {
+                    publish(error: localized(
+                        zh: "该高级卷尚未通过二次安全确认，或该操作对受保护磁盘不可用。",
+                        en: "This advanced volume has not passed the second safety confirmation, or the requested operation is blocked for protected disks."
+                    ))
+                    return
+                }
+            } else if ["mountProtected", "unmountProtected"].contains(action) {
+                publish(error: localized(zh: "已拒绝无效的高级卷操作。", en: "Invalid advanced-volume operation was blocked."))
                 return
             }
             perform(action: action, on: device)
         default:
-            publish(error: "不支持的操作：\(action)")
+            publish(error: localized(zh: "不支持的操作：\(action)", en: "Unsupported operation: \(action)"))
         }
     }
 
@@ -108,6 +153,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 let devices = try self.diskService.listExternalVolumes(includeAdvanced: self.proMode)
                 DispatchQueue.main.async {
                     self.devices = devices
+                    self.authorizedProtectedDeviceIDs.formIntersection(devices.map(\.id))
                     if !silent {
                         self.errorMessage = nil
                     }
@@ -115,7 +161,10 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.publish(error: "读取外接磁盘失败：\(error.localizedDescription)")
+                    self.publish(error: self.localized(
+                        zh: "读取外接磁盘失败：\(error.localizedDescription)",
+                        en: "Failed to read external disks: \(error.localizedDescription)"
+                    ))
                 }
             }
         }
@@ -134,7 +183,13 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 switch action {
                 case "mount":
                     try self.diskService.mount(device)
-                    successMessage = "已加载 \(device.name)"
+                    successMessage = self.localized(zh: "已加载 \(device.name)", en: "Mounted \(device.name)")
+                case "mountProtected":
+                    try self.diskService.mountProtected(device)
+                    successMessage = self.localized(
+                        zh: "已加载高级卷 \(device.name)；实际读写能力由文件系统与 macOS 安全策略决定。",
+                        en: "Mounted advanced volume \(device.name). Actual write access depends on its file system and macOS security policy."
+                    )
                 case "unmount":
                     if device.isNTFS, self.anyLinuxFS.executablePath != nil {
                         do {
@@ -146,17 +201,23 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                     } else {
                         try self.diskService.unmount(device)
                     }
-                    successMessage = "已卸载 \(device.name)"
+                    successMessage = self.localized(zh: "已卸载 \(device.name)", en: "Unmounted \(device.name)")
+                case "unmountProtected":
+                    try self.diskService.unmountProtected(device)
+                    successMessage = self.localized(zh: "已卸载高级卷 \(device.name)", en: "Unmounted advanced volume \(device.name)")
                 case "eject":
                     try self.diskService.eject(device)
-                    successMessage = "已安全弹出 \(device.name)"
+                    successMessage = self.localized(zh: "已安全弹出 \(device.name)", en: "Safely ejected \(device.name)")
                 case "mountNTFS":
                     guard device.isNTFS else { throw PanelError.notNTFS }
                     try self.anyLinuxFS.mountReadWrite(devicePath: device.devicePath)
-                    successMessage = "已将 \(device.name) 以 NTFS 读写模式加载"
+                    successMessage = self.localized(
+                        zh: "已将 \(device.name) 以 NTFS 读写模式加载",
+                        en: "Mounted \(device.name) with NTFS read/write access"
+                    )
                 case "open":
                     try self.diskService.openInFinder(device)
-                    successMessage = "已在 Finder 打开 \(device.name)"
+                    successMessage = self.localized(zh: "已在 Finder 打开 \(device.name)", en: "Opened \(device.name) in Finder")
                 default:
                     throw PanelError.unsupportedAction
                 }
@@ -172,7 +233,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             } catch {
                 DispatchQueue.main.async {
                     self.busyDeviceID = nil
-                    self.publish(error: error.localizedDescription)
+                    self.publish(error: self.localizedErrorDescription(error))
                 }
             }
         }
@@ -187,17 +248,47 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private func openProjectPage() {
         guard let url = URL(string: "https://github.com/samni728/diskmount"),
               NSWorkspace.shared.open(url) else {
-            publish(error: "无法打开项目页面，请访问 github.com/samni728/diskmount")
+            publish(error: localized(
+                zh: "无法打开项目页面，请访问 github.com/samni728/diskmount",
+                en: "Could not open the project page. Visit github.com/samni728/diskmount"
+            ))
             return
         }
     }
 
+    private func localized(zh: String, en: String) -> String {
+        language == "zh" ? zh : en
+    }
+
+    private func localizedErrorDescription(_ error: Error) -> String {
+        if error is AnyLinuxFSError {
+            return localized(
+                zh: "NTFS 运行时不可用，无法进行读写加载。",
+                en: "The NTFS runtime is unavailable, so read/write mounting cannot continue."
+            )
+        }
+        if error is DiskServiceError {
+            return localized(zh: "无法在 Finder 中打开该磁盘。", en: "Could not open this disk in Finder.")
+        }
+        if let panelError = error as? PanelError {
+            switch panelError {
+            case .notNTFS:
+                return localized(zh: "该分区不是 NTFS，已拒绝 NTFS 读写加载。", en: "This partition is not NTFS. Read/write mounting was blocked.")
+            case .unsupportedAction:
+                return localized(zh: "不支持的磁盘操作。", en: "Unsupported disk operation.")
+            }
+        }
+        return error.localizedDescription
+    }
+
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.3",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.0",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,
+            language: language,
+            authorizedProtectedDeviceIDs: authorizedProtectedDeviceIDs.sorted(),
             busyDeviceID: busyDeviceID,
             message: message,
             error: errorMessage
