@@ -16,12 +16,9 @@
 </p>
 
 <p align="center">
-  支持项目持续开发 — <strong>请我喝一杯 5 美元的咖啡</strong>
-</p>
-
-<p align="center">
+  支持项目持续开发 —
   <a href="https://ko-fi.com/samni728">
-    <img src="docs/screenshots/kofi.png" alt="通过 Ko-fi 请我喝杯咖啡" width="180">
+    <img src="docs/screenshots/kofi.png" alt="通过 Ko-fi 请我喝一杯 5 美元的咖啡" width="110" valign="middle">
   </a>
 </p>
 
@@ -80,7 +77,9 @@ DiskMount 可能需要三类相互独立的 macOS 权限。它们均由 macOS �
 
 NTFS 读写加载需要管理员权限，因为内嵌引擎必须访问外接磁盘的块设备，并替换 macOS 默认的 NTFS 只读挂载。
 
-![DiskMount 0.2.3 管理员授权提示](docs/screenshots/diskmount-0.2.3-authorization.png)
+<p align="center">
+  <img src="docs/screenshots/diskmount-0.2.3-authorization.png" alt="DiskMount 0.2.3 管理员授权提示" width="420">
+</p>
 
 出现此提示时，请输入 macOS 管理员账户的密码并点击 **继续**。密码只用于当前提权操作：
 

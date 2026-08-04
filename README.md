@@ -16,12 +16,9 @@
 </p>
 
 <p align="center">
-  Support continued development — <strong>Buy me a coffee for $5</strong>
-</p>
-
-<p align="center">
+  Support continued development —
   <a href="https://ko-fi.com/samni728">
-    <img src="docs/screenshots/kofi.png" alt="Buy me a coffee on Ko-fi" width="180">
+    <img src="docs/screenshots/kofi.png" alt="Buy me a coffee for $5 on Ko-fi" width="110" valign="middle">
   </a>
 </p>
 
@@ -80,7 +77,9 @@ DiskMount may need three separate macOS permissions. They are controlled by macO
 
 NTFS read/write mounting needs administrator privileges because the bundled engine must access the external block device and replace macOS's read-only NTFS mount.
 
-![DiskMount 0.2.3 administrator authorization prompt](docs/screenshots/diskmount-0.2.3-authorization.png)
+<p align="center">
+  <img src="docs/screenshots/diskmount-0.2.3-authorization.png" alt="DiskMount 0.2.3 administrator authorization prompt" width="420">
+</p>
 
 When this prompt appears, enter the password for a macOS administrator account and choose **Continue**. The password is used only for the current privileged operation:
 
