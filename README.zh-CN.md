@@ -25,12 +25,15 @@
 
 # DiskMount
 
-当前版本：**0.2.9**
+当前版本：**0.2.10**
 
 DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提供加载、Finder 打开和安全弹出操作。NTFS 卷通过 App 内嵌的 `anylinuxfs` 运行时以读写方式重新加载，不会改变原有文件系统格式。普通模式只提供一个清晰的“安全弹出”操作；单独卸载卷仅保留给专家模式中的高级卷。
 
 > [!IMPORTANT]
 > DiskMount 不会格式化、抹掉、重新分区或转换磁盘格式。“NTFS 读写加载”只改变当前挂载方式。
+
+> [!WARNING]
+> **当前限制 — 中文及其他非 ASCII 卷名：** DiskMount 通过 anylinuxfs/NFS 将 NTFS 卷重新加载为可读写后，Finder 和 macOS 桌面的临时盘符可能显示为 `DiskMount-disk35s1` 这样的英文安全名称。这**不会修改磁盘原始卷名或任何文件**，也不影响正常读写；DiskMount 面板仍会显示原始卷名。当前必须使用纯 ASCII 挂载点，以规避一项 [macOS NFS 已知问题](https://github.com/nohajc/anylinuxfs#known-issues)。
 
 > [!WARNING]
 > **启用 NTFS 读写前需要完成以下授权：**
@@ -87,7 +90,7 @@ DiskMount 可能需要三类相互独立的 macOS 权限。它们均由 macOS �
 NTFS 读写加载需要管理员权限，因为内嵌引擎必须访问外接磁盘的块设备，并替换 macOS 默认的 NTFS 只读挂载。
 
 <p align="center">
-  <img src="docs/screenshots/diskmount-0.2.3-authorization.png" alt="DiskMount 0.2.3 管理员授权提示" width="420">
+  <img src="docs/screenshots/diskmount-0.2.3-authorization.jpg" alt="DiskMount 管理员授权提示" width="360">
 </p>
 
 出现此提示时，请输入 macOS 管理员账户的密码并点击 **继续**。密码只用于当前提权操作：
@@ -120,18 +123,18 @@ DiskMount 运行期间会维持 macOS 的 `sudo` 授权时间戳。这样，已�
 - 挂载需要更高权限时，需通过 macOS 管理员授权；
 - 第一次进行 NTFS 原始磁盘访问时，需允许访问可移动卷。
 
-0.2.9 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
+0.2.10 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
 
 ## 安装
 
-1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.9-macOS26.dmg`；
+1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.10-macOS26.dmg`；
 2. 打开 DMG，将 `DiskMount.app` 拖入“应用程序”；
 3. 从“应用程序”启动 DiskMount；
 4. 首次显示面板后，App 会继续常驻顶部菜单栏。
 
 ### Gatekeeper 与第三方 App 提示
 
-0.2.9 安装包使用开发者本人的 Apple Development 证书签名，但尚未通过 Apple 公证。其他 Mac 从互联网下载 DMG 后，第一次启动时可能会被系统阻止。
+0.2.10 安装包使用开发者本人的 Apple Development 证书签名，但尚未通过 Apple 公证。其他 Mac 从互联网下载 DMG 后，第一次启动时可能会被系统阻止。
 
 如果 macOS 阻止 DiskMount，请先尝试打开一次，然后前往 **系统设置 → 隐私与安全性 → 安全性 → 仍要打开**，输入当前 Mac 的登录密码并确认 **打开**。请使用这种单 App 放行方式，不要永久关闭 Gatekeeper。公司或学校管理的 Mac 可能还需要 IT 管理员批准。
 
@@ -176,9 +179,9 @@ cd DiskMount
 
 ```bash
 # 先更新 VERSION 和更新说明
-git tag -a v0.2.9 -m "DiskMount 0.2.9"
+git tag -a v0.2.10 -m "DiskMount 0.2.10"
 git push origin main
-git push origin v0.2.9
+git push origin v0.2.10
 ```
 
 如未配置 Developer ID 签名和公证 Secrets，自动产物使用 ad-hoc 签名。详细维护清单见 [RELEASING.md](RELEASING.md)。
@@ -194,6 +197,7 @@ DiskMount 不是 anylinuxfs 官方 GUI，也不代表上游项目对本项目提
 ## 已知限制
 
 - anylinuxfs 会将卷作为本机 NFS 网络卷暴露给 macOS；
+- 中文及其他非 ASCII NTFS 卷名在 Finder 和桌面上可能显示为临时英文盘符，但原始卷名和文件不会改变；
 - Microsoft Word 可能无法直接编辑这类网络卷上的文件；
 - 默认 ntfs-3g 驱动在长时间大量传输时可能出现可重试 I/O 错误；
 - 首次 microVM 初始化需要网络；

@@ -25,12 +25,15 @@
 
 # DiskMount
 
-Current version: **0.2.9**
+Current version: **0.2.10**
 
 DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format. Normal mode exposes one clear eject action; per-volume unmount is reserved for advanced volumes in Expert Mode.
 
 > [!IMPORTANT]
 > DiskMount never formats, erases, repartitions, or converts a disk. “Mount NTFS Read/Write” changes only the active mount method.
+
+> [!WARNING]
+> **Known limitation — Chinese and other non-ASCII volume names:** After DiskMount remounts an NTFS volume read/write through anylinuxfs/NFS, Finder and the macOS desktop may temporarily show a safe English mount name such as `DiskMount-disk35s1`. This does **not** rename the disk's original volume label or any files, and it does not affect normal read/write use. DiskMount continues to show the original volume name in its panel. A safe ASCII mount point is currently required to avoid a [known macOS NFS issue](https://github.com/nohajc/anylinuxfs#known-issues).
 
 > [!WARNING]
 > **Permissions required for NTFS read/write:**
@@ -87,7 +90,7 @@ DiskMount may need three separate macOS permissions. They are controlled by macO
 NTFS read/write mounting needs administrator privileges because the bundled engine must access the external block device and replace macOS's read-only NTFS mount.
 
 <p align="center">
-  <img src="docs/screenshots/diskmount-0.2.3-authorization.png" alt="DiskMount 0.2.3 administrator authorization prompt" width="420">
+  <img src="docs/screenshots/diskmount-0.2.3-authorization.jpg" alt="DiskMount administrator authorization prompt" width="360">
 </p>
 
 When this prompt appears, enter the password for a macOS administrator account and choose **Continue**. The password is used only for the current privileged operation:
@@ -120,18 +123,18 @@ Expert Mode confirmation is an additional in-app safety check. It does not repla
 - administrator approval when a mount operation requires elevated access;
 - user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.9 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.10 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.9-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.10-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
 
 ### Gatekeeper and third-party app warning
 
-The 0.2.9 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
+The 0.2.10 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
 
 If macOS blocks DiskMount, try to open it once, then go to **System Settings → Privacy & Security → Security → Open Anyway**, authenticate, and confirm **Open**. Use this per-app exception; do not permanently disable Gatekeeper. Organization-managed Macs may require approval from an IT administrator.
 
@@ -173,9 +176,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.9 -m "DiskMount 0.2.9"
+git tag -a v0.2.10 -m "DiskMount 0.2.10"
 git push origin main
-git push origin v0.2.9
+git push origin v0.2.10
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.
@@ -207,6 +210,7 @@ DiskMount is not an official anylinuxfs GUI and is not endorsed by the upstream 
 ## Known limitations
 
 - anylinuxfs exposes the mounted volume to macOS as a local NFS network volume;
+- Chinese and other non-ASCII NTFS labels may appear under a temporary English mount name in Finder and on the desktop; the original label and files are unchanged;
 - Microsoft Word may not directly edit files on this type of network volume;
 - long, heavy transfers with the default ntfs-3g driver may occasionally report retryable I/O errors;
 - first-time microVM initialization requires network access;
