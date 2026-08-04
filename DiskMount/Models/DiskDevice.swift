@@ -24,6 +24,18 @@ struct DependencyState: Codable {
     let bundled: Bool
 }
 
+struct AppUpdateState: Codable, Equatable {
+    let available: Bool
+    let latestVersion: String?
+    let releaseURL: String?
+
+    static let noUpdate = AppUpdateState(
+        available: false,
+        latestVersion: nil,
+        releaseURL: nil
+    )
+}
+
 struct PanelState: Codable {
     let version: String
     let devices: [DiskDevice]
@@ -36,4 +48,5 @@ struct PanelState: Codable {
     let message: String?
     let error: String?
     let removableVolumePermissionRequired: Bool
+    let update: AppUpdateState
 }

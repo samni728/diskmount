@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.7 - 2026-08-04
+
+- Checks GitHub's latest stable Release at launch and when the user refreshes, without downloading or installing anything automatically.
+- Shows a pulsing green dot beside the installed version only when a newer version is available; hovering explains the update and clicking opens the trusted GitHub Release page.
+- Validates semantic versions and restricts update links to the official `samni728/diskmount` GitHub Releases path.
+- Adds a compact bilingual Command-click hint beside the Ko-fi button because GitHub strips popup and `target="_blank"` behavior from README HTML.
+
 ## 0.2.6 - 2026-08-04
 
 - Simplifies normal mode to one `Safely Eject` action; per-volume unmount remains an Expert Mode operation for advanced volumes only.

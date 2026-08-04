@@ -10,6 +10,7 @@
 		0E58FAEDA2BDF161AB813332 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = F773F7DC9D0BE44DA5E3E22C /* index.html */; };
 		18DE0C6114ABBCDD3283B14A /* DiskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3ACDCCDEB4A5890F3403EDE /* DiskService.swift */; };
 		23A21114574252AF0C72214D /* DiskDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A2CFDF36D7BD9B7CBA12C5 /* DiskDevice.swift */; };
+		2436AC4C824372B3592105B5 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D7C73700D16D18DA500AF4 /* UpdateService.swift */; };
 		4F79FCABDB614A21B39B877D /* AnyLinuxFSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2B41C0435E30FD505A243B /* AnyLinuxFSService.swift */; };
 		592E73BDC47E7362081B8884 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4D549CF0F161A9A8C8B711C /* Assets.xcassets */; };
 		5AED0165BAB2CB8003CF8A3C /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256309C5C555CC763A76D529 /* StatusBarController.swift */; };
@@ -45,6 +46,7 @@
 		9842AC183EA11050067E6FCB /* app.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = app.css; sourceTree = "<group>"; };
 		A5020613A5D3BF31F571A2C7 /* THIRD_PARTY_NOTICES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THIRD_PARTY_NOTICES.md; sourceTree = "<group>"; };
 		AE2B41C0435E30FD505A243B /* AnyLinuxFSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyLinuxFSService.swift; sourceTree = "<group>"; };
+		C0D7C73700D16D18DA500AF4 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
 		C2E6CEB35F53D17EA871DBE0 /* app.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = app.js; sourceTree = "<group>"; };
 		D02749CA2EC4394AB08CD979 /* WebPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPanelController.swift; sourceTree = "<group>"; };
 		D4D549CF0F161A9A8C8B711C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -61,6 +63,7 @@
 				AE2B41C0435E30FD505A243B /* AnyLinuxFSService.swift */,
 				6CA6AF813581DE37FEAE78FA /* CommandRunner.swift */,
 				E3ACDCCDEB4A5890F3403EDE /* DiskService.swift */,
+				C0D7C73700D16D18DA500AF4 /* UpdateService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -239,6 +242,7 @@
 				23A21114574252AF0C72214D /* DiskDevice.swift in Sources */,
 				18DE0C6114ABBCDD3283B14A /* DiskService.swift in Sources */,
 				5AED0165BAB2CB8003CF8A3C /* StatusBarController.swift in Sources */,
+				2436AC4C824372B3592105B5 /* UpdateService.swift in Sources */,
 				B10A9280295B8CBA20FABA07 /* WebPanelController.swift in Sources */,
 				9E0C17747E3FC07833D47322 /* main.swift in Sources */,
 			);
@@ -312,7 +316,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development: samni728@gmail.com (4BVG532TG3)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YU9NH29226;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -322,7 +326,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.6;
+				MARKETING_VERSION = 0.2.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samni.DiskMount;
 				PRODUCT_NAME = DiskMount;
 				SDKROOT = macosx;
@@ -401,7 +405,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development: samni728@gmail.com (4BVG532TG3)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YU9NH29226;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -411,7 +415,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.6;
+				MARKETING_VERSION = 0.2.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samni.DiskMount;
 				PRODUCT_NAME = DiskMount;
 				SDKROOT = macosx;

@@ -105,7 +105,71 @@ h1 {
   letter-spacing: -.025em;
 }
 
-h1 span { color: var(--muted); font-size: 11px; font-weight: 600; }
+.version-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.version-button:disabled { opacity: 1; }
+.version-button.has-update { color: var(--ok); cursor: pointer; }
+
+.version-button.has-update::after {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  left: 0;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  content: attr(data-tooltip);
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.3;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+
+.version-button.has-update:hover::after,
+.version-button.has-update:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.update-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #20b76b;
+  box-shadow: 0 0 0 0 rgba(32, 183, 107, .6);
+  animation: update-pulse 1.7s ease-out infinite;
+}
+
+@keyframes update-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(32, 183, 107, .58); }
+  70% { box-shadow: 0 0 0 5px rgba(32, 183, 107, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(32, 183, 107, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-indicator { animation: none; }
+}
 
 button {
   appearance: none;

@@ -7,6 +7,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private static let autoMountPreferenceKey = "AutoMountNTFSPersistentIDs"
     private let diskService = DiskService()
     private let anyLinuxFS = AnyLinuxFSService()
+    private let updateService = UpdateService()
     private let workerQueue = DispatchQueue(label: "com.samni.DiskMount.worker", qos: .userInitiated)
     private let logger = Logger(subsystem: "com.samni.DiskMount", category: "disk-actions")
     private var webView: WKWebView!
@@ -28,6 +29,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private var wakeRecoveryGeneration = 0
     private var wakeRecoveryWorkItems: [DispatchWorkItem] = []
     private var removedDuplicateDuringWakeRecovery = false
+    private var updateState = AppUpdateState.noUpdate
+    private var lastUpdateCheck: Date?
 
     static func devicesAfterSuccessfulEject(
         _ devices: [DiskDevice],
@@ -68,6 +71,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     override func viewDidAppear() {
         super.viewDidAppear()
         refresh()
+        checkForUpdatesIfNeeded()
         refreshTimer?.invalidate()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.refresh(silent: true)
@@ -201,8 +205,12 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         }
         let deviceID = payload["deviceID"] as? String
         switch action {
-        case "ready", "refresh":
+        case "ready":
             refresh()
+            checkForUpdatesIfNeeded()
+        case "refresh":
+            refresh()
+            checkForUpdatesIfNeeded(force: true)
         case "setLanguage":
             self.message = nil
             errorMessage = nil
@@ -235,6 +243,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             publish()
         case "openProject", "starProject":
             openProjectPage()
+        case "openUpdate":
+            openLatestRelease()
         case "openPrivacySettings":
             openRemovableVolumePrivacySettings()
         case "setAutoMountNTFS":
@@ -453,6 +463,33 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         }
     }
 
+    private func checkForUpdatesIfNeeded(force: Bool = false) {
+        if !force,
+           let lastUpdateCheck,
+           Date().timeIntervalSince(lastUpdateCheck) < 6 * 60 * 60 {
+            return
+        }
+        lastUpdateCheck = Date()
+        let currentVersion = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "0.0.0"
+        updateService.check(currentVersion: currentVersion) { [weak self] state in
+            DispatchQueue.main.async {
+                guard let self, let state else { return }
+                self.updateState = state
+                self.publish()
+            }
+        }
+    }
+
+    private func openLatestRelease() {
+        guard updateState.available,
+              let value = updateState.releaseURL,
+              let url = URL(string: value),
+              UpdateService.isTrustedReleaseURL(url),
+              NSWorkspace.shared.open(url) else { return }
+    }
+
     private func openRemovableVolumePrivacySettings() {
         let candidates = [
             "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
@@ -518,7 +555,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.6",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.7",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,
@@ -528,7 +565,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             busyDeviceID: busyDeviceID,
             message: message,
             error: errorMessage,
-            removableVolumePermissionRequired: removableVolumePermissionRequired
+            removableVolumePermissionRequired: removableVolumePermissionRequired,
+            update: updateState
         )
         guard let data = try? JSONEncoder().encode(state),
               let json = String(data: data, encoding: .utf8) else { return }

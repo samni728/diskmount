@@ -168,4 +168,47 @@ final class CommandRunnerTests: XCTestCase {
         )
     }
 
+    func testUpdateVersionComparison() {
+        XCTAssertTrue(UpdateService.isVersion("v0.2.7", newerThan: "0.2.6"))
+        XCTAssertTrue(UpdateService.isVersion("1.0.0", newerThan: "0.9.9"))
+        XCTAssertFalse(UpdateService.isVersion("0.2.6", newerThan: "0.2.6"))
+        XCTAssertFalse(UpdateService.isVersion("0.2.5", newerThan: "0.2.6"))
+    }
+
+    func testUpdateStateAcceptsOnlyNewerStableGitHubRelease() throws {
+        let data = Data("""
+        {
+          "tag_name": "v0.3.0",
+          "html_url": "https://github.com/samni728/diskmount/releases/tag/v0.3.0",
+          "draft": false,
+          "prerelease": false
+        }
+        """.utf8)
+
+        XCTAssertEqual(
+            try UpdateService.updateState(from: data, currentVersion: "0.2.6"),
+            AppUpdateState(
+                available: true,
+                latestVersion: "0.3.0",
+                releaseURL: "https://github.com/samni728/diskmount/releases/tag/v0.3.0"
+            )
+        )
+    }
+
+    func testUpdateCheckerRejectsUntrustedReleaseURL() throws {
+        let data = Data("""
+        {
+          "tag_name": "v99.0.0",
+          "html_url": "https://example.com/fake-release",
+          "draft": false,
+          "prerelease": false
+        }
+        """.utf8)
+
+        XCTAssertEqual(
+            try UpdateService.updateState(from: data, currentVersion: "0.2.6"),
+            .noUpdate
+        )
+    }
+
 }

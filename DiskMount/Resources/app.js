@@ -54,7 +54,8 @@
       empty: 'No external physical disk detected.',
       emptyHint: 'Insert a USB drive or external disk, then refresh.',
       openPrivacySettings: 'Open Privacy Settings',
-      privacyHint: 'Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen it, then try again.'
+      privacyHint: 'Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen it, then try again.',
+      updateAvailable: 'Version {version} is available · Click to download'
     },
     zh: {
       eyebrow: '磁盘控制',
@@ -110,7 +111,8 @@
       empty: '没有检测到外接物理磁盘。',
       emptyHint: '插入 U 盘或移动硬盘后点击刷新。',
       openPrivacySettings: '打开隐私设置',
-      privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开后再试。'
+      privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开后再试。',
+      updateAvailable: '发现新版本 {version} · 点击前往下载'
     }
   };
 
@@ -118,6 +120,8 @@
   const dependencyElement = document.getElementById('dependency');
   const noticeElement = document.getElementById('notice');
   const versionElement = document.getElementById('version');
+  const versionButton = document.getElementById('version-button');
+  const updateIndicator = document.getElementById('update-indicator');
   const languageButton = document.getElementById('language-button');
   const proButton = document.getElementById('pro-button');
   const proConfirm = document.getElementById('pro-confirm');
@@ -170,6 +174,20 @@
     refreshButton.setAttribute('aria-label', t('refresh'));
     proButton.textContent = proMode ? t('expertModeOn') : t('expertMode');
     proButton.title = proMode ? t('expertHideTitle') : t('expertShowTitle');
+    if (latestState) renderUpdateState(latestState.update);
+  };
+
+  const renderUpdateState = (update) => {
+    const available = Boolean(update?.available && update?.latestVersion);
+    const tooltip = available
+      ? t('updateAvailable').replace('{version}', update.latestVersion)
+      : '';
+    versionButton.disabled = !available;
+    versionButton.classList.toggle('has-update', available);
+    updateIndicator.classList.toggle('hidden', !available);
+    versionButton.dataset.tooltip = tooltip;
+    versionButton.title = tooltip;
+    versionButton.setAttribute('aria-label', tooltip || `DiskMount ${versionElement.textContent}`);
   };
 
   const renderDevice = (device, busyID, dependencyAvailable, advancedAuthorized, autoMountEnabled) => {
@@ -233,6 +251,7 @@
     proMode = Boolean(state.proMode);
     proButton.classList.toggle('active', proMode);
     applyLanguage();
+    renderUpdateState(state.update);
 
     dependencyElement.innerHTML = state.dependency.available
       ? `<span class="dot"></span><span>${t('engineAvailable')} · ${escapeHTML(state.dependency.version || state.dependency.path)} · ${state.dependency.bundled ? t('bundled') : t('development')}</span>`
