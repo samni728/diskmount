@@ -15,6 +15,16 @@
   <a href="https://github.com/samni728/diskmount/stargazers">给项目一个 Star</a>
 </p>
 
+<p align="center">
+  支持项目持续开发 — <strong>请我喝一杯 5 美元的咖啡</strong>
+</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/samni728">
+    <img src="docs/screenshots/kofi.png" alt="通过 Ko-fi 请我喝杯咖啡" width="180">
+  </a>
+</p>
+
 # DiskMount
 
 当前版本：**0.2.4**

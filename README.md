@@ -15,6 +15,16 @@
   <a href="https://github.com/samni728/diskmount/stargazers">Give the project a Star</a>
 </p>
 
+<p align="center">
+  Support continued development — <strong>Buy me a coffee for $5</strong>
+</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/samni728">
+    <img src="docs/screenshots/kofi.png" alt="Buy me a coffee on Ko-fi" width="180">
+  </a>
+</p>
+
 # DiskMount
 
 Current version: **0.2.4**
