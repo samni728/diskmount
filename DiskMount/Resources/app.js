@@ -55,7 +55,9 @@
       emptyHint: 'Insert a USB drive or external disk, then refresh.',
       openPrivacySettings: 'Open Privacy Settings',
       privacyHint: 'Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen it, then try again.',
-      updateAvailable: 'Version {version} is available · Click to download'
+      updateAvailable: 'Version {version} is available · Click to download',
+      openGitHub: 'Open GitHub project',
+      buyCoffee: 'Buy me a coffee'
     },
     zh: {
       eyebrow: '磁盘控制',
@@ -112,7 +114,9 @@
       emptyHint: '插入 U 盘或移动硬盘后点击刷新。',
       openPrivacySettings: '打开隐私设置',
       privacyHint: '请为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开后再试。',
-      updateAvailable: '发现新版本 {version} · 点击前往下载'
+      updateAvailable: '发现新版本 {version} · 点击前往下载',
+      openGitHub: '打开 GitHub 项目',
+      buyCoffee: '请我喝杯咖啡'
     }
   };
 
@@ -122,6 +126,8 @@
   const versionElement = document.getElementById('version');
   const versionButton = document.getElementById('version-button');
   const updateIndicator = document.getElementById('update-indicator');
+  const githubButton = document.getElementById('github-button');
+  const coffeeButton = document.getElementById('coffee-button');
   const languageButton = document.getElementById('language-button');
   const proButton = document.getElementById('pro-button');
   const proConfirm = document.getElementById('pro-confirm');
@@ -174,6 +180,10 @@
     refreshButton.setAttribute('aria-label', t('refresh'));
     proButton.textContent = proMode ? t('expertModeOn') : t('expertMode');
     proButton.title = proMode ? t('expertHideTitle') : t('expertShowTitle');
+    githubButton.title = t('openGitHub');
+    githubButton.setAttribute('aria-label', t('openGitHub'));
+    coffeeButton.title = t('buyCoffee');
+    coffeeButton.setAttribute('aria-label', t('buyCoffee'));
     if (latestState) renderUpdateState(latestState.update);
   };
 

@@ -393,7 +393,13 @@ footer {
 }
 
 .project-row, .footer-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; }
-.project-link { overflow: hidden; padding: 0; color: var(--accent); background: transparent; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.footer-links { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.footer-link { display: inline-flex; align-items: center; justify-content: center; height: 24px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); }
+.coffee-link { width: 68px; padding: 3px 6px; }
+.coffee-link img { display: block; width: 56px; height: auto; }
+.github-link { width: 24px; padding: 4px; }
+.github-link img { display: block; width: 14px; height: 14px; opacity: .72; }
+@media (prefers-color-scheme: dark) { .github-link img { filter: invert(1); } }
 .star-button { flex: 0 0 auto; padding: 5px 8px; border-radius: 7px; color: #795600; background: #ffd866; font-size: 10px; font-weight: 750; }
 
 .text-button { padding: 3px 0; color: var(--muted); background: transparent; font-size: 10px; }

@@ -25,7 +25,7 @@
 
 # DiskMount
 
-Current version: **0.2.7**
+Current version: **0.2.8**
 
 DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format. Normal mode exposes one clear eject action; per-volume unmount is reserved for advanced volumes in Expert Mode.
 
@@ -54,10 +54,11 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 - one clear `Safely Eject` action in normal mode; per-volume unmount is reserved for advanced volumes in Expert Mode;
 - safe eject stops anylinuxfs/NFS services before releasing the physical disk, reports disks still in use, and stops waiting after 30 seconds instead of leaving the panel busy indefinitely;
 - reuses the active administrator authorization while stopping NTFS services, avoiding an unnecessary second password prompt during the same authorized session;
+- keeps a safely ejected disk hidden while it remains physically connected and restores it only after a real unplug/reinsert cycle;
 - checks the official latest stable GitHub Release at launch and on manual refresh; a pulsing green dot beside the installed version appears only when an update is available, with a hover explanation and click-through to the download page;
 - update checks never download or install software automatically, and trusted links are restricted to this project's GitHub Releases path;
 - fixed header and footer with an independently scrollable device list;
-- project link and Star button inside the app.
+- compact Ko-fi and GitHub icon links plus a Star button inside the app.
 
 ## Safe Mode and Expert Mode
 
@@ -117,18 +118,18 @@ Expert Mode confirmation is an additional in-app safety check. It does not repla
 - administrator approval when a mount operation requires elevated access;
 - user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.7 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.8 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.7-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.8-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
 
 ### Gatekeeper and third-party app warning
 
-The 0.2.7 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
+The 0.2.8 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
 
 If macOS blocks DiskMount, try to open it once, then go to **System Settings → Privacy & Security → Security → Open Anyway**, authenticate, and confirm **Open**. Use this per-app exception; do not permanently disable Gatekeeper. Organization-managed Macs may require approval from an IT administrator.
 
@@ -170,9 +171,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.7 -m "DiskMount 0.2.7"
+git tag -a v0.2.8 -m "DiskMount 0.2.8"
 git push origin main
-git push origin v0.2.7
+git push origin v0.2.8
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.

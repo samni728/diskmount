@@ -115,59 +115,6 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertFalse(DiskService.isBusyEjectErrorMessage("Media not found"))
     }
 
-    func testSuccessfulEjectRemovesEveryPartitionOnThePhysicalDisk() {
-        let selected = DiskDevice(
-            id: "disk34s1",
-            persistentID: "one",
-            wholeDiskIdentifier: "disk34",
-            name: "SYSDISK",
-            fileSystem: "ntfs",
-            content: "Windows_NTFS",
-            mountPoint: "/Volumes/SYSDISK",
-            size: 1_000,
-            mounted: true,
-            writable: true,
-            isNTFS: true,
-            isProtected: false
-        )
-        let sameDisk = DiskDevice(
-            id: "disk34s2",
-            persistentID: "two",
-            wholeDiskIdentifier: "disk34",
-            name: "DATA",
-            fileSystem: "exfat",
-            content: "Microsoft Basic Data",
-            mountPoint: "/Volumes/DATA",
-            size: 2_000,
-            mounted: true,
-            writable: true,
-            isNTFS: false,
-            isProtected: false
-        )
-        let otherDisk = DiskDevice(
-            id: "disk35s1",
-            persistentID: "three",
-            wholeDiskIdentifier: "disk35",
-            name: "USB",
-            fileSystem: "msdos",
-            content: "DOS_FAT_32",
-            mountPoint: "/Volumes/USB",
-            size: 3_000,
-            mounted: true,
-            writable: true,
-            isNTFS: false,
-            isProtected: false
-        )
-
-        XCTAssertEqual(
-            WebPanelController.devicesAfterSuccessfulEject(
-                [selected, sameDisk, otherDisk],
-                wholeDiskIdentifier: "disk34"
-            ),
-            [otherDisk]
-        )
-    }
-
     func testUpdateVersionComparison() {
         XCTAssertTrue(UpdateService.isVersion("v0.2.7", newerThan: "0.2.6"))
         XCTAssertTrue(UpdateService.isVersion("1.0.0", newerThan: "0.9.9"))
@@ -208,6 +155,127 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertEqual(
             try UpdateService.updateState(from: data, currentVersion: "0.2.6"),
             .noUpdate
+        )
+    }
+
+    func testEjectedDiskStaysHiddenWhileStillPhysicallyConnectedAndUnmounted() {
+        let disk = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "sysdisk",
+            wholeDisk: "disk35",
+            mounted: false
+        )
+        let suppression = EjectedDiskSuppression(
+            persistentIDs: ["sysdisk"],
+            hasObservedDetachedState: false
+        )
+
+        let result = WebPanelController.reconcileEjectedDevices(
+            [disk],
+            suppressions: ["disk35": suppression]
+        )
+
+        XCTAssertTrue(result.visibleDevices.isEmpty)
+        XCTAssertEqual(result.suppressions["disk35"]?.hasObservedDetachedState, false)
+    }
+
+    func testMissingEjectedDiskRecordsPhysicalDetachment() {
+        let suppression = EjectedDiskSuppression(
+            persistentIDs: ["sysdisk"],
+            hasObservedDetachedState: false
+        )
+
+        let result = WebPanelController.reconcileEjectedDevices(
+            [],
+            suppressions: ["disk35": suppression]
+        )
+
+        XCTAssertTrue(result.visibleDevices.isEmpty)
+        XCTAssertEqual(result.suppressions["disk35"]?.hasObservedDetachedState, true)
+    }
+
+    func testEjectedDiskReturnsOnlyAfterPhysicalDetachmentAndReappearance() {
+        let disk = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "sysdisk",
+            wholeDisk: "disk35",
+            mounted: true
+        )
+        let suppression = EjectedDiskSuppression(
+            persistentIDs: ["sysdisk"],
+            hasObservedDetachedState: true
+        )
+
+        let result = WebPanelController.reconcileEjectedDevices(
+            [disk],
+            suppressions: ["disk35": suppression]
+        )
+
+        XCTAssertEqual(result.visibleDevices, [disk])
+        XCTAssertNil(result.suppressions["disk35"])
+    }
+
+    func testBackgroundRemountDoesNotUndoEjectBeforePhysicalDetachment() {
+        let staleDisk = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "sysdisk",
+            wholeDisk: "disk35",
+            mounted: true
+        )
+        let suppression = EjectedDiskSuppression(
+            persistentIDs: ["sysdisk"],
+            hasObservedDetachedState: false
+        )
+
+        let result = WebPanelController.reconcileEjectedDevices(
+            [staleDisk],
+            suppressions: ["disk35": suppression]
+        )
+
+        XCTAssertTrue(result.visibleDevices.isEmpty)
+        XCTAssertNotNil(result.suppressions["disk35"])
+    }
+
+    func testReusedDiskNumberDoesNotHideAnotherPhysicalDisk() {
+        let replacement = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "different-device",
+            wholeDisk: "disk35",
+            mounted: false
+        )
+        let suppression = EjectedDiskSuppression(
+            persistentIDs: ["sysdisk"],
+            hasObservedDetachedState: true
+        )
+
+        let result = WebPanelController.reconcileEjectedDevices(
+            [replacement],
+            suppressions: ["disk35": suppression]
+        )
+
+        XCTAssertEqual(result.visibleDevices, [replacement])
+        XCTAssertNil(result.suppressions["disk35"])
+    }
+
+    private func makeTestDisk(
+        id: String,
+        persistentID: String,
+        wholeDisk: String,
+        mounted: Bool
+    ) -> DiskDevice {
+        DiskDevice(
+            id: id,
+            persistentID: persistentID,
+            wholeDiskIdentifier: wholeDisk,
+            name: "Test Disk",
+            fileSystem: "ntfs",
+            content: "Windows_NTFS",
+            mountPoint: mounted ? "/Volumes/Test Disk" : nil,
+            size: 1_000,
+            mounted: mounted,
+            writable: mounted,
+            isNTFS: true,
+            isProtected: false
         )
     }
 

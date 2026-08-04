@@ -36,6 +36,11 @@ struct AppUpdateState: Codable, Equatable {
     )
 }
 
+struct EjectedDiskSuppression: Equatable {
+    let persistentIDs: Set<String>
+    var hasObservedDetachedState: Bool
+}
+
 struct PanelState: Codable {
     let version: String
     let devices: [DiskDevice]

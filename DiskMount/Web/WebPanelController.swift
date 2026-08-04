@@ -31,12 +31,39 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private var removedDuplicateDuringWakeRecovery = false
     private var updateState = AppUpdateState.noUpdate
     private var lastUpdateCheck: Date?
+    private var ejectedDiskSuppressions: [String: EjectedDiskSuppression] = [:]
 
-    static func devicesAfterSuccessfulEject(
+    static func reconcileEjectedDevices(
         _ devices: [DiskDevice],
-        wholeDiskIdentifier: String
-    ) -> [DiskDevice] {
-        devices.filter { $0.wholeDiskIdentifier != wholeDiskIdentifier }
+        suppressions: [String: EjectedDiskSuppression]
+    ) -> (visibleDevices: [DiskDevice], suppressions: [String: EjectedDiskSuppression]) {
+        let devicesByWholeDisk = Dictionary(grouping: devices, by: \.wholeDiskIdentifier)
+        var remainingSuppressions = suppressions
+
+        for (wholeDisk, suppression) in suppressions {
+            guard let connectedDevices = devicesByWholeDisk[wholeDisk],
+                  !connectedDevices.isEmpty else {
+                var detachedSuppression = suppression
+                detachedSuppression.hasObservedDetachedState = true
+                remainingSuppressions[wholeDisk] = detachedSuppression
+                continue
+            }
+
+            let connectedPersistentIDs = Set(connectedDevices.map(\.persistentID))
+            if suppression.persistentIDs.isDisjoint(with: connectedPersistentIDs) {
+                remainingSuppressions.removeValue(forKey: wholeDisk)
+                continue
+            }
+
+            if suppression.hasObservedDetachedState {
+                remainingSuppressions.removeValue(forKey: wholeDisk)
+            }
+        }
+
+        let visibleDevices = devices.filter {
+            remainingSuppressions[$0.wholeDiskIdentifier] == nil
+        }
+        return (visibleDevices, remainingSuppressions)
     }
 
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
@@ -161,8 +188,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             DispatchQueue.main.async {
                 guard generation == self.wakeRecoveryGeneration, !self.isSystemSleeping else { return }
                 if let refreshed {
-                    self.devices = refreshed
-                    self.authorizedProtectedDeviceIDs.formIntersection(refreshed.map(\.id))
+                    self.devices = self.applyEjectSuppressions(to: refreshed)
+                    self.authorizedProtectedDeviceIDs.formIntersection(self.devices.map(\.id))
                 }
                 if !removedDuplicates.isEmpty {
                     self.removedDuplicateDuringWakeRecovery = true
@@ -243,6 +270,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             publish()
         case "openProject", "starProject":
             openProjectPage()
+        case "openCoffee":
+            openCoffeePage()
         case "openUpdate":
             openLatestRelease()
         case "openPrivacySettings":
@@ -304,9 +333,9 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             do {
                 let devices = try self.diskService.listExternalVolumes(includeAdvanced: self.proMode)
                 DispatchQueue.main.async {
-                    self.devices = devices
-                    self.authorizedProtectedDeviceIDs.formIntersection(devices.map(\.id))
-                    self.autoMountAttempts.formIntersection(devices.map(\.persistentID))
+                    self.devices = self.applyEjectSuppressions(to: devices)
+                    self.authorizedProtectedDeviceIDs.formIntersection(self.devices.map(\.id))
+                    self.autoMountAttempts.formIntersection(self.devices.map(\.persistentID))
                     if !silent {
                         self.errorMessage = nil
                     }
@@ -387,12 +416,13 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
                 let refreshed = (try? self.diskService.listExternalVolumes(includeAdvanced: self.proMode)) ?? self.devices
                 DispatchQueue.main.async {
-                    self.devices = action == "eject"
-                        ? Self.devicesAfterSuccessfulEject(
-                            refreshed,
-                            wholeDiskIdentifier: device.wholeDiskIdentifier
+                    if action == "eject" {
+                        self.ejectedDiskSuppressions[device.wholeDiskIdentifier] = EjectedDiskSuppression(
+                            persistentIDs: ejectedPersistentIDs,
+                            hasObservedDetachedState: false
                         )
-                        : refreshed
+                    }
+                    self.devices = self.applyEjectSuppressions(to: refreshed)
                     if action == "mountNTFS" {
                         self.autoMountNTFSPersistentIDs.insert(device.persistentID)
                         self.saveAutoMountPreferences()
@@ -461,6 +491,20 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             ))
             return
         }
+    }
+
+    private func openCoffeePage() {
+        guard let url = URL(string: "https://ko-fi.com/samni728"),
+              NSWorkspace.shared.open(url) else { return }
+    }
+
+    private func applyEjectSuppressions(to devices: [DiskDevice]) -> [DiskDevice] {
+        let result = Self.reconcileEjectedDevices(
+            devices,
+            suppressions: ejectedDiskSuppressions
+        )
+        ejectedDiskSuppressions = result.suppressions
+        return result.visibleDevices
     }
 
     private func checkForUpdatesIfNeeded(force: Bool = false) {
@@ -555,7 +599,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.7",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.8",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,

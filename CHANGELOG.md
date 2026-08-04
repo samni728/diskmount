@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.8 - 2026-08-04
+
+- Keeps a successfully ejected physical disk hidden across periodic refreshes while it remains connected, preventing the same unmounted device from reappearing in the panel.
+- Restores a suppressed disk only after macOS first observes its physical disappearance and then sees it again, or when the BSD disk number is reused by a different physical device.
+- Adds focused regression coverage for stale snapshots, background remounts, physical reinsertion, and disk-number reuse.
+- Replaces the full repository URL in the app footer with compact Ko-fi and GitHub icon links while retaining the Star button.
+
 ## 0.2.7 - 2026-08-04
 
 - Checks GitHub's latest stable Release at launch and when the user refreshes, without downloading or installing anything automatically.

@@ -11,6 +11,7 @@
 		18DE0C6114ABBCDD3283B14A /* DiskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3ACDCCDEB4A5890F3403EDE /* DiskService.swift */; };
 		23A21114574252AF0C72214D /* DiskDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A2CFDF36D7BD9B7CBA12C5 /* DiskDevice.swift */; };
 		2436AC4C824372B3592105B5 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D7C73700D16D18DA500AF4 /* UpdateService.swift */; };
+		32EE3B7BF400C40712442B6E /* github-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 1A7ACFC0F21469B8FC3A2B22 /* github-mark.svg */; };
 		4F79FCABDB614A21B39B877D /* AnyLinuxFSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2B41C0435E30FD505A243B /* AnyLinuxFSService.swift */; };
 		592E73BDC47E7362081B8884 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4D549CF0F161A9A8C8B711C /* Assets.xcassets */; };
 		5AED0165BAB2CB8003CF8A3C /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256309C5C555CC763A76D529 /* StatusBarController.swift */; };
@@ -20,6 +21,7 @@
 		9E0C17747E3FC07833D47322 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E5DFEF4469D92E1D99679A /* main.swift */; };
 		B10A9280295B8CBA20FABA07 /* WebPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02749CA2EC4394AB08CD979 /* WebPanelController.swift */; };
 		B6D75AE1AD94631B7328685B /* THIRD_PARTY_NOTICES.md in Resources */ = {isa = PBXBuildFile; fileRef = A5020613A5D3BF31F571A2C7 /* THIRD_PARTY_NOTICES.md */; };
+		C6C36F98B64C035958392E22 /* kofi-button.png in Resources */ = {isa = PBXBuildFile; fileRef = B76176396B3F78A7C370159D /* kofi-button.png */; };
 		EA4E02C1678D73C6EAE04E56 /* CommandRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4FE96FDA2B2377023DCDC6 /* CommandRunnerTests.swift */; };
 		FC4E0A1122606E0204059B0C /* app.js in Resources */ = {isa = PBXBuildFile; fileRef = C2E6CEB35F53D17EA871DBE0 /* app.js */; };
 		FF272F15E68F96055EECBF00 /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 42307CD2AEC893FD0342750F /* logo.png */; };
@@ -37,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		0EBBB1F4B0162BE5A78FA98C /* DiskMount.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DiskMount.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A7ACFC0F21469B8FC3A2B22 /* github-mark.svg */ = {isa = PBXFileReference; path = "github-mark.svg"; sourceTree = "<group>"; };
 		256309C5C555CC763A76D529 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		32A2CFDF36D7BD9B7CBA12C5 /* DiskDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskDevice.swift; sourceTree = "<group>"; };
 		42307CD2AEC893FD0342750F /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
@@ -46,6 +49,7 @@
 		9842AC183EA11050067E6FCB /* app.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = app.css; sourceTree = "<group>"; };
 		A5020613A5D3BF31F571A2C7 /* THIRD_PARTY_NOTICES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THIRD_PARTY_NOTICES.md; sourceTree = "<group>"; };
 		AE2B41C0435E30FD505A243B /* AnyLinuxFSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyLinuxFSService.swift; sourceTree = "<group>"; };
+		B76176396B3F78A7C370159D /* kofi-button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "kofi-button.png"; sourceTree = "<group>"; };
 		C0D7C73700D16D18DA500AF4 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
 		C2E6CEB35F53D17EA871DBE0 /* app.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = app.js; sourceTree = "<group>"; };
 		D02749CA2EC4394AB08CD979 /* WebPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPanelController.swift; sourceTree = "<group>"; };
@@ -90,7 +94,9 @@
 				9842AC183EA11050067E6FCB /* app.css */,
 				C2E6CEB35F53D17EA871DBE0 /* app.js */,
 				D4D549CF0F161A9A8C8B711C /* Assets.xcassets */,
+				1A7ACFC0F21469B8FC3A2B22 /* github-mark.svg */,
 				F773F7DC9D0BE44DA5E3E22C /* index.html */,
+				B76176396B3F78A7C370159D /* kofi-button.png */,
 				42307CD2AEC893FD0342750F /* logo.png */,
 				A5020613A5D3BF31F571A2C7 /* THIRD_PARTY_NOTICES.md */,
 			);
@@ -224,7 +230,9 @@
 				B6D75AE1AD94631B7328685B /* THIRD_PARTY_NOTICES.md in Resources */,
 				83F2906400CC0257DE73F149 /* app.css in Resources */,
 				FC4E0A1122606E0204059B0C /* app.js in Resources */,
+				32EE3B7BF400C40712442B6E /* github-mark.svg in Resources */,
 				0E58FAEDA2BDF161AB813332 /* index.html in Resources */,
+				C6C36F98B64C035958392E22 /* kofi-button.png in Resources */,
 				FF272F15E68F96055EECBF00 /* logo.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -316,7 +324,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development: samni728@gmail.com (4BVG532TG3)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = YU9NH29226;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -326,7 +334,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samni.DiskMount;
 				PRODUCT_NAME = DiskMount;
 				SDKROOT = macosx;
@@ -405,7 +413,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development: samni728@gmail.com (4BVG532TG3)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = YU9NH29226;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -415,7 +423,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.samni.DiskMount;
 				PRODUCT_NAME = DiskMount;
 				SDKROOT = macosx;
