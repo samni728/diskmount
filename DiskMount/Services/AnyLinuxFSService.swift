@@ -38,11 +38,16 @@ final class AnyLinuxFSService {
             deviceIdentifier: deviceIdentifier,
             volumeName: volumeName
         )
+        let customMountPoint = Self.customMountPoint(
+            deviceIdentifier: deviceIdentifier,
+            volumeName: volumeName
+        )
         do {
             _ = try CommandRunner.runNTFSMountAsAdministrator(
                 path,
                 devicePath: devicePath,
-                arguments: arguments
+                arguments: arguments,
+                customMountPoint: customMountPoint
             )
             let mounts = DiskService().activeAnyLinuxFSMounts()
             guard Self.hasVerifiedWritableMount(
@@ -52,7 +57,8 @@ final class AnyLinuxFSService {
                 if mounts[deviceIdentifier] != nil {
                     _ = try? CommandRunner.runAnyLinuxFSUnmountAsAdministrator(
                         path,
-                        devicePath: devicePath
+                        devicePath: devicePath,
+                        cleanupMountPoint: customMountPoint
                     )
                 }
                 _ = try? CommandRunner.run(
@@ -76,7 +82,16 @@ final class AnyLinuxFSService {
         guard let path = executablePath else {
             throw AnyLinuxFSError.notInstalled
         }
-        _ = try CommandRunner.runAnyLinuxFSUnmountAsAdministrator(path, devicePath: devicePath)
+        let deviceIdentifier = URL(fileURLWithPath: devicePath).lastPathComponent
+        let activeMountPoint = DiskService().activeAnyLinuxFSMounts()[deviceIdentifier]?.mountPoint
+        let cleanupMountPoint = activeMountPoint?.hasPrefix("/Volumes/DiskMount-") == true
+            ? activeMountPoint
+            : nil
+        _ = try CommandRunner.runAnyLinuxFSUnmountAsAdministrator(
+            path,
+            devicePath: devicePath,
+            cleanupMountPoint: cleanupMountPoint
+        )
     }
 
     static func isRawDiskPermissionError(_ error: Error) -> Bool {
@@ -93,11 +108,19 @@ final class AnyLinuxFSService {
         volumeName: String
     ) -> [String] {
         var arguments = ["mount", devicePath]
-        if requiresASCIIMountPoint(volumeName) {
-            arguments.append(safeMountPoint(deviceIdentifier: deviceIdentifier))
+        if let customMountPoint = customMountPoint(
+            deviceIdentifier: deviceIdentifier,
+            volumeName: volumeName
+        ) {
+            arguments.append(customMountPoint)
         }
         arguments.append(contentsOf: ["--remount", "--ignore-permissions", "--window", "false"])
         return arguments
+    }
+
+    static func customMountPoint(deviceIdentifier: String, volumeName: String) -> String? {
+        guard requiresASCIIMountPoint(volumeName) else { return nil }
+        return safeMountPoint(deviceIdentifier: deviceIdentifier)
     }
 
     static func requiresASCIIMountPoint(_ volumeName: String) -> Bool {

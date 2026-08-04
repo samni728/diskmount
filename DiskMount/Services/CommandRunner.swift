@@ -39,6 +39,7 @@ enum CommandError: LocalizedError {
 enum CommandRunner {
     private static let sudoSession = SudoSession()
     static let ntfsMountVerificationMarker = "DiskMount: NTFS engine exited without creating an NFS mount."
+    static let mountPointPreparationMarker = "DiskMount: Cannot prepare the custom mount point."
 
     static func run(
         _ executable: String,
@@ -132,19 +133,22 @@ enum CommandRunner {
     static func runNTFSMountAsAdministrator(
         _ executable: String,
         devicePath: String,
-        arguments: [String]
+        arguments: [String],
+        customMountPoint: String? = nil
     ) throws -> CommandResult {
         return try sudoSession.run(ntfsMountShellCommand(
             executable,
             devicePath: devicePath,
-            arguments: arguments
+            arguments: arguments,
+            customMountPoint: customMountPoint
         ))
     }
 
     static func ntfsMountShellCommand(
         _ executable: String,
         devicePath: String,
-        arguments: [String]
+        arguments: [String],
+        customMountPoint: String? = nil
     ) -> String {
         let privilegedMount = ([executable] + arguments).map(shellQuote).joined(separator: " ")
         let fallbackMount = ["/usr/sbin/diskutil", "mount", devicePath]
@@ -152,12 +156,24 @@ enum CommandRunner {
         let deviceIdentifier = URL(fileURLWithPath: devicePath).lastPathComponent
         let activeAnyLinuxFSMount = "/sbin/mount | /usr/bin/grep -F -q -- "
             + shellQuote("\(deviceIdentifier).local:")
+        let prepareMountPoint: String
+        let cleanupMountPoint: String
+        if let customMountPoint {
+            let quotedMountPoint = shellQuote(customMountPoint)
+            prepareMountPoint = "if [ -L \(quotedMountPoint) ] || { [ -e \(quotedMountPoint) ] && [ ! -d \(quotedMountPoint) ]; }; then "
+                + "/bin/echo \(shellQuote(mountPointPreparationMarker)) >&2; exit 71; fi; "
+                + "/bin/mkdir -p \(quotedMountPoint) || exit $?; "
+            cleanupMountPoint = "/bin/rmdir \(quotedMountPoint) >/dev/null 2>&1 || true; "
+        } else {
+            prepareMountPoint = ""
+            cleanupMountPoint = ""
+        }
 
         // Run anylinuxfs through a real user-launched sudo process. If the engine fails after
         // unmounting the read-only volume, restore the normal macOS mount before returning.
         // Never create a duplicate read-only mount if a surviving anylinuxfs NFS mount still
         // owns this device after system wake.
-        return "status=0; \(privilegedMount) || status=$?; "
+        return prepareMountPoint + "status=0; \(privilegedMount) || status=$?; "
             + "if [ \"$status\" -eq 0 ]; then mounted=0; attempts=0; "
             + "while [ \"$attempts\" -lt 20 ]; do "
             + "if \(activeAnyLinuxFSMount); then mounted=1; break; fi; "
@@ -165,19 +181,33 @@ enum CommandRunner {
             + "if [ \"$mounted\" -ne 1 ]; then "
             + "/bin/echo \(shellQuote(ntfsMountVerificationMarker)) >&2; status=70; fi; fi; "
             + "if [ \"$status\" -ne 0 ] && ! \(activeAnyLinuxFSMount); then "
-            + "\(fallbackMount) >/dev/null 2>&1 || true; fi; "
+            + "\(fallbackMount) >/dev/null 2>&1 || true; \(cleanupMountPoint)fi; "
             + "(exit \"$status\")"
     }
 
     static func runAnyLinuxFSUnmountAsAdministrator(
         _ executable: String,
-        devicePath: String
+        devicePath: String,
+        cleanupMountPoint: String? = nil
     ) throws -> CommandResult {
-        return try sudoSession.run(anyLinuxFSUnmountCommand(executable, devicePath: devicePath))
+        return try sudoSession.run(anyLinuxFSUnmountCommand(
+            executable,
+            devicePath: devicePath,
+            cleanupMountPoint: cleanupMountPoint
+        ))
     }
 
-    static func anyLinuxFSUnmountCommand(_ executable: String, devicePath: String) -> String {
-        [executable, "unmount", devicePath].map(shellQuote).joined(separator: " ")
+    static func anyLinuxFSUnmountCommand(
+        _ executable: String,
+        devicePath: String,
+        cleanupMountPoint: String? = nil
+    ) -> String {
+        let unmount = [executable, "unmount", devicePath].map(shellQuote).joined(separator: " ")
+        guard let cleanupMountPoint else { return unmount }
+        let cleanup = ["/bin/rmdir", cleanupMountPoint].map(shellQuote).joined(separator: " ")
+        return "status=0; \(unmount) || status=$?; "
+            + "if [ \"$status\" -eq 0 ]; then \(cleanup) >/dev/null 2>&1 || true; fi; "
+            + "(exit \"$status\")"
     }
 
     static func shellQuote(_ value: String) -> String {

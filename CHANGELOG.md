@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.10 - Test build (not released)
+
+- Creates the ASCII-only custom mount directory before invoking anylinuxfs, fixing the `Failed to resolve path ... No such file or directory` error reported with the Chinese `大白菜U盘` volume.
+- Rejects symbolic-link or non-directory mount targets before privileged mounting.
+- Removes only the empty DiskMount-managed mount directory after a failed mount or successful unmount.
+- This build is intentionally held for physical USB-drive testing before GitHub publication.
+
 ## 0.2.9 - 2026-08-04
 
 - Supports Chinese and other non-ASCII NTFS volume names by assigning an ASCII-only custom NFS mount point while preserving the original display name in DiskMount.

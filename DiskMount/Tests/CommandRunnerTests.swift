@@ -68,6 +68,13 @@ final class CommandRunnerTests: XCTestCase {
 
     func testChineseVolumeNameUsesASCIICustomMountPoint() {
         XCTAssertEqual(
+            AnyLinuxFSService.customMountPoint(
+                deviceIdentifier: "disk35s1",
+                volumeName: "大白菜U盘"
+            ),
+            "/Volumes/DiskMount-disk35s1"
+        )
+        XCTAssertEqual(
             AnyLinuxFSService.mountArguments(
                 devicePath: "/dev/disk35s1",
                 deviceIdentifier: "disk35s1",
@@ -81,6 +88,12 @@ final class CommandRunnerTests: XCTestCase {
     }
 
     func testASCIINameKeepsAnyLinuxFSDefaultMountPoint() {
+        XCTAssertNil(
+            AnyLinuxFSService.customMountPoint(
+                deviceIdentifier: "disk66s1",
+                volumeName: "SYSDISK"
+            )
+        )
         XCTAssertEqual(
             AnyLinuxFSService.mountArguments(
                 devicePath: "/dev/disk66s1",
@@ -108,14 +121,86 @@ final class CommandRunnerTests: XCTestCase {
             arguments: [
                 "mount", "/dev/disk35s1", "/Volumes/DiskMount-disk35s1",
                 "--remount", "--ignore-permissions", "--window", "false"
-            ]
+            ],
+            customMountPoint: "/Volumes/DiskMount-disk35s1"
         )
 
         XCTAssertTrue(command.contains("'disk35s1.local:'"))
+        XCTAssertTrue(command.contains("/bin/mkdir -p '/Volumes/DiskMount-disk35s1'"))
+        XCTAssertTrue(command.contains("[ -L '/Volumes/DiskMount-disk35s1' ]"))
+        XCTAssertTrue(command.contains(CommandRunner.mountPointPreparationMarker))
         XCTAssertTrue(command.contains("/bin/sleep 0.25"))
         XCTAssertTrue(command.contains(CommandRunner.ntfsMountVerificationMarker))
         XCTAssertTrue(command.contains("'/usr/sbin/diskutil' 'mount' '/dev/disk35s1'"))
-        XCTAssertTrue(command.contains("'/Volumes/DiskMount-disk35s1'"))
+        XCTAssertTrue(command.contains("/bin/rmdir '/Volumes/DiskMount-disk35s1'"))
+
+        XCTAssertNoThrow(
+            try CommandRunner.run("/bin/sh", arguments: ["-n", "-c", command])
+        )
+    }
+
+    func testAnyLinuxFSUnmountRemovesOnlyEmptyManagedMountPointAfterSuccess() {
+        let command = CommandRunner.anyLinuxFSUnmountCommand(
+            "/Applications/Disk Mount/anylinuxfs",
+            devicePath: "/dev/disk35s1",
+            cleanupMountPoint: "/Volumes/DiskMount-disk35s1"
+        )
+
+        XCTAssertTrue(command.contains("'/Applications/Disk Mount/anylinuxfs' 'unmount' '/dev/disk35s1'"))
+        XCTAssertTrue(command.contains("if [ \"$status\" -eq 0 ]"))
+        XCTAssertTrue(command.contains("'/bin/rmdir' '/Volumes/DiskMount-disk35s1'"))
+        XCTAssertNoThrow(
+            try CommandRunner.run("/bin/sh", arguments: ["-n", "-c", command])
+        )
+    }
+
+    func testFailedNTFSMountCreatesThenRemovesEmptyCustomMountPoint() throws {
+        let base = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DiskMountTests-\(UUID().uuidString)")
+        let mountPoint = base.appendingPathComponent("DiskMount-test").path
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+
+        let command = CommandRunner.ntfsMountShellCommand(
+            "/usr/bin/false",
+            devicePath: "/dev/DiskMountNonexistentTest",
+            arguments: [],
+            customMountPoint: mountPoint
+        )
+        let result = try CommandRunner.run(
+            "/bin/sh",
+            arguments: ["-c", command],
+            requireSuccess: false
+        )
+
+        XCTAssertNotEqual(result.exitCode, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: mountPoint))
+    }
+
+    func testCustomMountPointRejectsSymbolicLink() throws {
+        let base = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DiskMountTests-\(UUID().uuidString)")
+        let target = base.appendingPathComponent("target")
+        let mountPoint = base.appendingPathComponent("DiskMount-link")
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: mountPoint, withDestinationURL: target)
+        defer { try? FileManager.default.removeItem(at: base) }
+
+        let command = CommandRunner.ntfsMountShellCommand(
+            "/usr/bin/true",
+            devicePath: "/dev/DiskMountNonexistentTest",
+            arguments: [],
+            customMountPoint: mountPoint.path
+        )
+        let result = try CommandRunner.run(
+            "/bin/sh",
+            arguments: ["-c", command],
+            requireSuccess: false
+        )
+
+        XCTAssertEqual(result.exitCode, 71)
+        XCTAssertTrue(result.stderrText.contains(CommandRunner.mountPointPreparationMarker))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: target.path))
     }
 
     func testMissingMountVerificationErrorIsRecognized() {
