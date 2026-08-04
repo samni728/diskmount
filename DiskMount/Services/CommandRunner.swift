@@ -38,6 +38,7 @@ enum CommandError: LocalizedError {
 
 enum CommandRunner {
     private static let sudoSession = SudoSession()
+    static let ntfsMountVerificationMarker = "DiskMount: NTFS engine exited without creating an NFS mount."
 
     static func run(
         _ executable: String,
@@ -133,6 +134,18 @@ enum CommandRunner {
         devicePath: String,
         arguments: [String]
     ) throws -> CommandResult {
+        return try sudoSession.run(ntfsMountShellCommand(
+            executable,
+            devicePath: devicePath,
+            arguments: arguments
+        ))
+    }
+
+    static func ntfsMountShellCommand(
+        _ executable: String,
+        devicePath: String,
+        arguments: [String]
+    ) -> String {
         let privilegedMount = ([executable] + arguments).map(shellQuote).joined(separator: " ")
         let fallbackMount = ["/usr/sbin/diskutil", "mount", devicePath]
             .map(shellQuote).joined(separator: " ")
@@ -144,11 +157,16 @@ enum CommandRunner {
         // unmounting the read-only volume, restore the normal macOS mount before returning.
         // Never create a duplicate read-only mount if a surviving anylinuxfs NFS mount still
         // owns this device after system wake.
-        let command = "status=0; \(privilegedMount) || status=$?; "
+        return "status=0; \(privilegedMount) || status=$?; "
+            + "if [ \"$status\" -eq 0 ]; then mounted=0; attempts=0; "
+            + "while [ \"$attempts\" -lt 20 ]; do "
+            + "if \(activeAnyLinuxFSMount); then mounted=1; break; fi; "
+            + "attempts=$((attempts + 1)); /bin/sleep 0.25; done; "
+            + "if [ \"$mounted\" -ne 1 ]; then "
+            + "/bin/echo \(shellQuote(ntfsMountVerificationMarker)) >&2; status=70; fi; fi; "
             + "if [ \"$status\" -ne 0 ] && ! \(activeAnyLinuxFSMount); then "
             + "\(fallbackMount) >/dev/null 2>&1 || true; fi; "
             + "(exit \"$status\")"
-        return try sudoSession.run(command)
     }
 
     static func runAnyLinuxFSUnmountAsAdministrator(

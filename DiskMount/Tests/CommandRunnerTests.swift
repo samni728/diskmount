@@ -66,6 +66,94 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertFalse(AnyLinuxFSService.isRawDiskPermissionError(error))
     }
 
+    func testChineseVolumeNameUsesASCIICustomMountPoint() {
+        XCTAssertEqual(
+            AnyLinuxFSService.mountArguments(
+                devicePath: "/dev/disk35s1",
+                deviceIdentifier: "disk35s1",
+                volumeName: "大白菜U盘"
+            ),
+            [
+                "mount", "/dev/disk35s1", "/Volumes/DiskMount-disk35s1",
+                "--remount", "--ignore-permissions", "--window", "false"
+            ]
+        )
+    }
+
+    func testASCIINameKeepsAnyLinuxFSDefaultMountPoint() {
+        XCTAssertEqual(
+            AnyLinuxFSService.mountArguments(
+                devicePath: "/dev/disk66s1",
+                deviceIdentifier: "disk66s1",
+                volumeName: "SYSDISK"
+            ),
+            [
+                "mount", "/dev/disk66s1",
+                "--remount", "--ignore-permissions", "--window", "false"
+            ]
+        )
+    }
+
+    func testUnsafeDeviceIdentifierIsSanitizedForMountPoint() {
+        XCTAssertEqual(
+            AnyLinuxFSService.safeMountPoint(deviceIdentifier: "磁盘 disk 35/s1;$()"),
+            "/Volumes/DiskMount-disk35s1"
+        )
+    }
+
+    func testNTFSMountCommandVerifiesNFSPostconditionAndRestoresNativeMount() {
+        let command = CommandRunner.ntfsMountShellCommand(
+            "/Applications/Disk Mount/anylinuxfs",
+            devicePath: "/dev/disk35s1",
+            arguments: [
+                "mount", "/dev/disk35s1", "/Volumes/DiskMount-disk35s1",
+                "--remount", "--ignore-permissions", "--window", "false"
+            ]
+        )
+
+        XCTAssertTrue(command.contains("'disk35s1.local:'"))
+        XCTAssertTrue(command.contains("/bin/sleep 0.25"))
+        XCTAssertTrue(command.contains(CommandRunner.ntfsMountVerificationMarker))
+        XCTAssertTrue(command.contains("'/usr/sbin/diskutil' 'mount' '/dev/disk35s1'"))
+        XCTAssertTrue(command.contains("'/Volumes/DiskMount-disk35s1'"))
+    }
+
+    func testMissingMountVerificationErrorIsRecognized() {
+        let error = CommandError.failed(
+            executable: "/usr/bin/sudo",
+            exitCode: 70,
+            message: CommandRunner.ntfsMountVerificationMarker
+        )
+
+        XCTAssertTrue(AnyLinuxFSService.isMissingMountVerificationError(error))
+    }
+
+    func testNTFSSuccessRequiresExactWritableMount() {
+        let writable = DiskService.AnyLinuxFSMount(
+            deviceIdentifier: "disk35s1",
+            mountPoint: "/Volumes/DiskMount-disk35s1",
+            writable: true
+        )
+        let readOnly = DiskService.AnyLinuxFSMount(
+            deviceIdentifier: "disk35s1",
+            mountPoint: "/Volumes/DiskMount-disk35s1",
+            writable: false
+        )
+
+        XCTAssertTrue(AnyLinuxFSService.hasVerifiedWritableMount(
+            deviceIdentifier: "disk35s1",
+            mounts: ["disk35s1": writable]
+        ))
+        XCTAssertFalse(AnyLinuxFSService.hasVerifiedWritableMount(
+            deviceIdentifier: "disk35s1",
+            mounts: ["disk35s1": readOnly]
+        ))
+        XCTAssertFalse(AnyLinuxFSService.hasVerifiedWritableMount(
+            deviceIdentifier: "disk35s1",
+            mounts: ["disk66s1": writable]
+        ))
+    }
+
     func testParsesAnyLinuxFSMountByDeviceIdentifier() {
         let output = """
         /dev/disk3s1 on /System/Volumes/Data (apfs, local, journaled)

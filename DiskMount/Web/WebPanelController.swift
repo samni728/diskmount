@@ -401,7 +401,11 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 case "mountNTFS":
                     guard device.isNTFS else { throw PanelError.notNTFS }
                     if !self.diskService.isMountedByAnyLinuxFS(deviceIdentifier: device.id) {
-                        try self.anyLinuxFS.mountReadWrite(devicePath: device.devicePath)
+                        try self.anyLinuxFS.mountReadWrite(
+                            devicePath: device.devicePath,
+                            deviceIdentifier: device.id,
+                            volumeName: device.name
+                        )
                     }
                     successMessage = self.localized(
                         zh: "已将 \(device.name) 以 NTFS 读写模式加载",
@@ -568,6 +572,11 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                     zh: "macOS 已阻止 NTFS 引擎读取原始磁盘。DiskMount 已尝试恢复普通只读挂载；请确认已为 DiskMount 开启“完全磁盘访问权限”和“可移动卷”权限，完全退出并重新打开 App 后再试。",
                     en: "macOS blocked the NTFS engine from reading the raw disk. DiskMount attempted to restore the normal read-only mount. Enable Full Disk Access and Removable Volumes access for DiskMount, fully quit and reopen the app, then try again."
                 )
+            case .mountVerificationFailed:
+                return localized(
+                    zh: "NTFS 引擎已经退出，但没有建立可用的 NFS 读写挂载。DiskMount 已尝试恢复 macOS 原生只读挂载；请刷新后重试。",
+                    en: "The NTFS engine exited without creating a usable NFS read/write mount. DiskMount attempted to restore the native macOS read-only mount; refresh and try again."
+                )
             }
         }
         if let diskServiceError = error as? DiskServiceError {
@@ -599,7 +608,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.8",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.9",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,

@@ -25,19 +25,48 @@ final class AnyLinuxFSService {
         return DependencyState(available: true, path: path, version: rawVersion ?? "anylinuxfs", bundled: bundled)
     }
 
-    func mountReadWrite(devicePath: String) throws {
+    func mountReadWrite(
+        devicePath: String,
+        deviceIdentifier: String,
+        volumeName: String
+    ) throws {
         guard let path = executablePath else {
             throw AnyLinuxFSError.notInstalled
         }
+        let arguments = Self.mountArguments(
+            devicePath: devicePath,
+            deviceIdentifier: deviceIdentifier,
+            volumeName: volumeName
+        )
         do {
             _ = try CommandRunner.runNTFSMountAsAdministrator(
                 path,
                 devicePath: devicePath,
-                arguments: ["mount", devicePath, "--remount", "--ignore-permissions", "--window", "false"]
+                arguments: arguments
             )
+            let mounts = DiskService().activeAnyLinuxFSMounts()
+            guard Self.hasVerifiedWritableMount(
+                deviceIdentifier: deviceIdentifier,
+                mounts: mounts
+            ) else {
+                if mounts[deviceIdentifier] != nil {
+                    _ = try? CommandRunner.runAnyLinuxFSUnmountAsAdministrator(
+                        path,
+                        devicePath: devicePath
+                    )
+                }
+                _ = try? CommandRunner.run(
+                    "/usr/sbin/diskutil",
+                    arguments: ["mount", devicePath]
+                )
+                throw AnyLinuxFSError.mountVerificationFailed
+            }
         } catch {
             if Self.isRawDiskPermissionError(error) {
                 throw AnyLinuxFSError.fullDiskAccessRequired
+            }
+            if Self.isMissingMountVerificationError(error) {
+                throw AnyLinuxFSError.mountVerificationFailed
             }
             throw error
         }
@@ -57,11 +86,50 @@ final class AnyLinuxFSService {
             || message.contains("operation not permitted")
             || message.contains("file-read-data")
     }
+
+    static func mountArguments(
+        devicePath: String,
+        deviceIdentifier: String,
+        volumeName: String
+    ) -> [String] {
+        var arguments = ["mount", devicePath]
+        if requiresASCIIMountPoint(volumeName) {
+            arguments.append(safeMountPoint(deviceIdentifier: deviceIdentifier))
+        }
+        arguments.append(contentsOf: ["--remount", "--ignore-permissions", "--window", "false"])
+        return arguments
+    }
+
+    static func requiresASCIIMountPoint(_ volumeName: String) -> Bool {
+        let forbidden = CharacterSet(charactersIn: "/:").union(.controlCharacters)
+        return volumeName.isEmpty
+            || volumeName.data(using: .ascii, allowLossyConversion: false) == nil
+            || volumeName.rangeOfCharacter(from: forbidden) != nil
+    }
+
+    static func safeMountPoint(deviceIdentifier: String) -> String {
+        let allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+        let safeIdentifier = deviceIdentifier.filter { allowed.contains($0) }
+        let suffix = safeIdentifier.isEmpty ? "External" : safeIdentifier
+        return "/Volumes/DiskMount-\(suffix)"
+    }
+
+    static func isMissingMountVerificationError(_ error: Error) -> Bool {
+        error.localizedDescription.contains(CommandRunner.ntfsMountVerificationMarker)
+    }
+
+    static func hasVerifiedWritableMount(
+        deviceIdentifier: String,
+        mounts: [String: DiskService.AnyLinuxFSMount]
+    ) -> Bool {
+        mounts[deviceIdentifier]?.writable == true
+    }
 }
 
 enum AnyLinuxFSError: LocalizedError {
     case notInstalled
     case fullDiskAccessRequired
+    case mountVerificationFailed
 
     var errorDescription: String? {
         switch self {
@@ -69,6 +137,8 @@ enum AnyLinuxFSError: LocalizedError {
             return "未检测到 anylinuxfs。请先执行：brew tap nohajc/anylinuxfs && brew install anylinuxfs"
         case .fullDiskAccessRequired:
             return "macOS 阻止了 NTFS 引擎读取原始磁盘。"
+        case .mountVerificationFailed:
+            return "NTFS 引擎未能建立可用的 NFS 挂载。"
         }
     }
 }

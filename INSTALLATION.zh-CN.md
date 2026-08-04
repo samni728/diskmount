@@ -4,18 +4,18 @@
 
 ## 安装前须知
 
-请仅从项目的 [GitHub Releases 页面](https://github.com/samni728/diskmount/releases)下载 DiskMount。0.2.8 是自包含版本，不需要用户安装 Homebrew、Xcode 或独立的 anylinuxfs。
+请仅从项目的 [GitHub Releases 页面](https://github.com/samni728/diskmount/releases)下载 DiskMount。0.2.9 是自包含版本，不需要用户安装 Homebrew、Xcode 或独立的 anylinuxfs。
 
 当前安装包使用开发者本人的 Apple Development 证书签名，但尚未使用 Developer ID Application 证书，也没有通过 Apple 公证。从互联网下载 DMG 后，其他 Mac 可能会在第一次启动时进行拦截。这个 Gatekeeper 安装放行与 App 启动后的磁盘权限是两套相互独立的授权。
 
 ## 正常安装流程
 
-1. 下载 `DiskMount-0.2.8-macOS26.dmg` 和对应的 `.sha256` 文件。
+1. 下载 `DiskMount-0.2.9-macOS26.dmg` 和对应的 `.sha256` 文件。
 2. 可以在终端验证下载完整性：
 
    ```bash
    cd ~/Downloads
-   shasum -a 256 -c DiskMount-0.2.8-macOS26.dmg.sha256
+   shasum -a 256 -c DiskMount-0.2.9-macOS26.dmg.sha256
    ```
 
 3. 打开 DMG，把 `DiskMount.app` 拖入“应用程序”。
@@ -50,4 +50,4 @@ DiskMount 启动和用户手动刷新时会访问 GitHub 的公开“最新 Rele
 
 ## 商业分发状态
 
-0.2.8 仍属于开发签名的社区版本。要实现面向普通用户、无未知开发者拦截的公开分发，还需要 Developer ID Application 证书、对 App 和所有内嵌程序进行 Hardened Runtime 签名、提交 Apple 公证并装订公证票据。
+0.2.9 仍属于开发签名的社区版本。要实现面向普通用户、无未知开发者拦截的公开分发，还需要 Developer ID Application 证书、对 App 和所有内嵌程序进行 Hardened Runtime 签名、提交 Apple 公证并装订公证票据。

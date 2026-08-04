@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.9 - 2026-08-04
+
+- Supports Chinese and other non-ASCII NTFS volume names by assigning an ASCII-only custom NFS mount point while preserving the original display name in DiskMount.
+- Verifies that an exact device-backed NFS mount actually appears after anylinuxfs exits instead of treating its process exit code as proof of success.
+- Waits up to five seconds for the postcondition, reports a real failure when the mount is absent, and restores the native macOS read-only NTFS mount.
+- Saves Auto Read/Write only after the verified NFS mount succeeds, preventing failed mounts from being remembered as successful.
+- Adds regression coverage using the reported `大白菜U盘` name, safe-path sanitization, mount verification, and fallback restoration.
+
 ## 0.2.8 - 2026-08-04
 
 - Keeps a successfully ejected physical disk hidden across periodic refreshes while it remains connected, preventing the same unmounted device from reappearing in the panel.

@@ -25,7 +25,7 @@
 
 # DiskMount
 
-当前版本：**0.2.8**
+当前版本：**0.2.9**
 
 DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提供加载、Finder 打开和安全弹出操作。NTFS 卷通过 App 内嵌的 `anylinuxfs` 运行时以读写方式重新加载，不会改变原有文件系统格式。普通模式只提供一个清晰的“安全弹出”操作；单独卸载卷仅保留给专家模式中的高级卷。
 
@@ -49,6 +49,8 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 - 显示卷名、设备标识、所属整盘、文件系统、容量、挂载点和读写状态；
 - FAT、exFAT 和 APFS 数据卷的普通加载；
 - 通过内嵌 `anylinuxfs 0.18.0` 进行 NTFS 读写加载；
+- 中文及其他非 ASCII NTFS 卷名会自动使用安全的纯 ASCII NFS 目标路径，同时 DiskMount 界面继续显示原始卷名；
+- 只有检测到该设备对应的真实可写 NFS 挂载后才报告成功；如果挂载不存在，会恢复 macOS 原生 NTFS 只读挂载并显示错误；
 - 按磁盘记住“自动读写”设置，App 运行期间再次插入已记住的 NTFS 磁盘时自动尝试读写加载；
 - 在 Finder 打开已加载卷，并安全弹出外接整盘；
 - 普通模式只显示一个“安全弹出”操作；单独卸载卷仅保留给专家模式中的高级卷；
@@ -118,18 +120,18 @@ DiskMount 运行期间会维持 macOS 的 `sudo` 授权时间戳。这样，已�
 - 挂载需要更高权限时，需通过 macOS 管理员授权；
 - 第一次进行 NTFS 原始磁盘访问时，需允许访问可移动卷。
 
-0.2.8 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
+0.2.9 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
 
 ## 安装
 
-1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.8-macOS26.dmg`；
+1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.9-macOS26.dmg`；
 2. 打开 DMG，将 `DiskMount.app` 拖入“应用程序”；
 3. 从“应用程序”启动 DiskMount；
 4. 首次显示面板后，App 会继续常驻顶部菜单栏。
 
 ### Gatekeeper 与第三方 App 提示
 
-0.2.8 安装包使用开发者本人的 Apple Development 证书签名，但尚未通过 Apple 公证。其他 Mac 从互联网下载 DMG 后，第一次启动时可能会被系统阻止。
+0.2.9 安装包使用开发者本人的 Apple Development 证书签名，但尚未通过 Apple 公证。其他 Mac 从互联网下载 DMG 后，第一次启动时可能会被系统阻止。
 
 如果 macOS 阻止 DiskMount，请先尝试打开一次，然后前往 **系统设置 → 隐私与安全性 → 安全性 → 仍要打开**，输入当前 Mac 的登录密码并确认 **打开**。请使用这种单 App 放行方式，不要永久关闭 Gatekeeper。公司或学校管理的 Mac 可能还需要 IT 管理员批准。
 
@@ -174,9 +176,9 @@ cd DiskMount
 
 ```bash
 # 先更新 VERSION 和更新说明
-git tag -a v0.2.8 -m "DiskMount 0.2.8"
+git tag -a v0.2.9 -m "DiskMount 0.2.9"
 git push origin main
-git push origin v0.2.8
+git push origin v0.2.9
 ```
 
 如未配置 Developer ID 签名和公证 Secrets，自动产物使用 ad-hoc 签名。详细维护清单见 [RELEASING.md](RELEASING.md)。
