@@ -66,6 +66,13 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         return (visibleDevices, remainingSuppressions)
     }
 
+    static func deviceIdentitySetChanged(
+        from previousDevices: [DiskDevice],
+        to currentDevices: [DiskDevice]
+    ) -> Bool {
+        Set(previousDevices.map(\.persistentID)) != Set(currentDevices.map(\.persistentID))
+    }
+
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         observeVolumeChanges()
@@ -333,12 +340,19 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             do {
                 let devices = try self.diskService.listExternalVolumes(includeAdvanced: self.proMode)
                 DispatchQueue.main.async {
-                    self.devices = self.applyEjectSuppressions(to: devices)
+                    let visibleDevices = self.applyEjectSuppressions(to: devices)
+                    let deviceIdentityChanged = Self.deviceIdentitySetChanged(
+                        from: self.devices,
+                        to: visibleDevices
+                    )
+                    if !silent || deviceIdentityChanged {
+                        self.message = nil
+                        self.errorMessage = nil
+                        self.removableVolumePermissionRequired = false
+                    }
+                    self.devices = visibleDevices
                     self.authorizedProtectedDeviceIDs.formIntersection(self.devices.map(\.id))
                     self.autoMountAttempts.formIntersection(self.devices.map(\.persistentID))
-                    if !silent {
-                        self.errorMessage = nil
-                    }
                     self.publish()
                     self.performNextAutomaticMountIfNeeded()
                 }

@@ -1,10 +1,12 @@
 import AppKit
 import Foundation
 import IOKit
+import OSLog
 
 final class DiskService {
     private let diskutil = "/usr/sbin/diskutil"
     private let mountTool = "/sbin/mount"
+    private let logger = Logger(subsystem: "com.samni.DiskMount", category: "disk-discovery")
 
     struct AnyLinuxFSMount: Equatable {
         let deviceIdentifier: String
@@ -44,6 +46,17 @@ final class DiskService {
                 wholeDiskSize: unsignedInteger(disk["Size"]),
                 into: &candidates
             )
+            if let identifier = Self.wholeDiskVolumeIdentifier(from: disk) {
+                let size = unsignedInteger(disk["Size"])
+                candidates.append(Candidate(
+                    identifier: identifier,
+                    wholeDisk: wholeDisk,
+                    content: disk["Content"] as? String ?? "",
+                    size: size,
+                    wholeDiskSize: size,
+                    forceProtected: false
+                ))
+            }
         }
 
         let bootWholeDisks = bootRelatedWholeDisks(in: candidates)
@@ -51,20 +64,32 @@ final class DiskService {
         candidates.append(contentsOf: apfsScan.candidates)
         let protectedWholeDisks = bootWholeDisks.union(apfsScan.systemWholeDisks)
 
-        return candidates.compactMap { candidate in
-            try? makeDevice(
-                identifier: candidate.identifier,
-                wholeDisk: candidate.wholeDisk,
-                fallbackContent: candidate.content,
-                fallbackSize: candidate.size,
-                wholeDiskSize: candidate.wholeDiskSize,
-                forceProtected: candidate.forceProtected || protectedWholeDisks.contains(candidate.wholeDisk),
-                anyLinuxFSMounts: anyLinuxFSMounts
-            )
-        }.filter { includeAdvanced || !$0.isProtected }.sorted { lhs, rhs in
+        let devices = candidates.compactMap { candidate -> DiskDevice? in
+            do {
+                return try makeDevice(
+                    identifier: candidate.identifier,
+                    wholeDisk: candidate.wholeDisk,
+                    fallbackContent: candidate.content,
+                    fallbackSize: candidate.size,
+                    wholeDiskSize: candidate.wholeDiskSize,
+                    forceProtected: candidate.forceProtected || protectedWholeDisks.contains(candidate.wholeDisk),
+                    anyLinuxFSMounts: anyLinuxFSMounts
+                )
+            } catch {
+                logger.error("Failed to inspect /dev/\(candidate.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                return nil
+            }
+        }
+        return devices.filter { includeAdvanced || !$0.isProtected }.sorted { lhs, rhs in
             if lhs.wholeDiskIdentifier == rhs.wholeDiskIdentifier { return lhs.id < rhs.id }
             return lhs.wholeDiskIdentifier < rhs.wholeDiskIdentifier
         }
+    }
+
+    static func wholeDiskVolumeIdentifier(from disk: [String: Any]) -> String? {
+        guard let identifier = disk["DeviceIdentifier"] as? String else { return nil }
+        let partitions = disk["Partitions"] as? [[String: Any]] ?? []
+        return partitions.isEmpty ? identifier : nil
     }
 
     func mount(_ device: DiskDevice) throws {

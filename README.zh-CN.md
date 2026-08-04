@@ -35,6 +35,9 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 > [!WARNING]
 > **当前限制 — 中文及其他非 ASCII 卷名：** DiskMount 通过 anylinuxfs/NFS 将 NTFS 卷重新加载为可读写后，Finder 和 macOS 桌面的临时盘符可能显示为 `DiskMount-disk35s1` 这样的英文安全名称。这**不会修改磁盘原始卷名或任何文件**，也不影响正常读写；DiskMount 面板仍会显示原始卷名。当前必须使用纯 ASCII 挂载点，以规避一项 [macOS NFS 已知问题](https://github.com/nohajc/anylinuxfs#known-issues)。
 
+> [!NOTE]
+> **ISO/CD9660 启动 U 盘：** DiskMount 0.2.10 可以识别直接写入整块 U 盘、没有分区表的文件系统。ISO/CD9660 安装盘在设计上就是只读介质；DiskMount 可以显示它、在 Finder 中打开并安全弹出，但不能让它变成可写。要恢复普通写入能力必须抹掉并重新格式化，而 DiskMount 永远不会执行这类操作。
+
 > [!WARNING]
 > **启用 NTFS 读写前需要完成以下授权：**
 > 1. DiskMount 请求管理员授权时，需要输入管理员密码。该授权仅用于 NTFS 加载、停止磁盘服务、安全弹出和失败恢复；密码不会被保存、记录或上传。
@@ -50,6 +53,7 @@ DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提�
 - 外接卷加载、卸载或改名时自动刷新；
 - 支持英文和简体中文，语言选择会保存；
 - 显示卷名、设备标识、所属整盘、文件系统、容量、挂载点和读写状态；
+- 可识别没有分区表的整盘文件系统，包括只读的 ISO/CD9660 安装 U 盘；
 - FAT、exFAT 和 APFS 数据卷的普通加载；
 - 通过内嵌 `anylinuxfs 0.18.0` 进行 NTFS 读写加载；
 - 中文及其他非 ASCII NTFS 卷名会自动使用安全的纯 ASCII NFS 目标路径，同时 DiskMount 界面继续显示原始卷名；
@@ -198,9 +202,10 @@ DiskMount 不是 anylinuxfs 官方 GUI，也不代表上游项目对本项目提
 
 - anylinuxfs 会将卷作为本机 NFS 网络卷暴露给 macOS；
 - 中文及其他非 ASCII NTFS 卷名在 Finder 和桌面上可能显示为临时英文盘符，但原始卷名和文件不会改变；
+- ISO/CD9660 启动 U 盘在设计上就是只读介质；DiskMount 可以识别、打开和弹出，但无法启用写入；
 - Microsoft Word 可能无法直接编辑这类网络卷上的文件；
 - 默认 ntfs-3g 驱动在长时间大量传输时可能出现可重试 I/O 错误；
 - 首次 microVM 初始化需要网络；
 - 文件正在写入时不应卸载或拔出设备。
 
-完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前正式版本说明见 [CHANGELOG.md](CHANGELOG.md)。

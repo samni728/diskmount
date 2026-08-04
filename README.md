@@ -35,6 +35,9 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 > [!WARNING]
 > **Known limitation — Chinese and other non-ASCII volume names:** After DiskMount remounts an NTFS volume read/write through anylinuxfs/NFS, Finder and the macOS desktop may temporarily show a safe English mount name such as `DiskMount-disk35s1`. This does **not** rename the disk's original volume label or any files, and it does not affect normal read/write use. DiskMount continues to show the original volume name in its panel. A safe ASCII mount point is currently required to avoid a [known macOS NFS issue](https://github.com/nohajc/anylinuxfs#known-issues).
 
+> [!NOTE]
+> **Bootable ISO/CD9660 USB media:** DiskMount 0.2.10 can detect file systems written directly to an entire USB disk even when the device has no partition table. ISO/CD9660 installer media is inherently read-only: DiskMount can display it, open it in Finder, and safely eject it, but cannot make it writable. Making that device writable would require erasing and reformatting it, which DiskMount never performs.
+
 > [!WARNING]
 > **Permissions required for NTFS read/write:**
 > 1. Enter an administrator password when DiskMount requests authorization. This authorization is used only for NTFS mounting, stopping its disk service, safe eject, and failure recovery. The password is never stored, logged, or uploaded.
@@ -50,6 +53,7 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 - automatic refresh when external volumes are mounted, unmounted, or renamed;
 - English and Simplified Chinese UI with a persistent language switch;
 - device name, identifier, whole disk, file system, capacity, mount point, and write state;
+- detects whole-disk USB file systems without a partition table, including read-only ISO/CD9660 installer media;
 - regular mounting for FAT, exFAT, and APFS data volumes;
 - NTFS read/write mounting through bundled `anylinuxfs 0.18.0`;
 - Chinese and other non-ASCII NTFS volume names use a safe ASCII NFS destination automatically while their original names remain visible in DiskMount;
@@ -211,9 +215,10 @@ DiskMount is not an official anylinuxfs GUI and is not endorsed by the upstream 
 
 - anylinuxfs exposes the mounted volume to macOS as a local NFS network volume;
 - Chinese and other non-ASCII NTFS labels may appear under a temporary English mount name in Finder and on the desktop; the original label and files are unchanged;
+- ISO/CD9660 bootable USB media is read-only by design; DiskMount can identify, open, and eject it but cannot enable write access;
 - Microsoft Word may not directly edit files on this type of network volume;
 - long, heavy transfers with the default ntfs-3g driver may occasionally report retryable I/O errors;
 - first-time microVM initialization requires network access;
 - do not unmount or unplug a device while files are being written.
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+See [CHANGELOG.md](CHANGELOG.md) for the current formal release notes.

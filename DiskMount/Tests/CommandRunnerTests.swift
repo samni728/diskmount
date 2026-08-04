@@ -288,6 +288,34 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertFalse(DiskService.isBusyEjectErrorMessage("Media not found"))
     }
 
+    func testWholeDiskVolumeWithoutPartitionTableIsDiscoverable() {
+        let wholeDisk: [String: Any] = [
+            "DeviceIdentifier": "disk35",
+            "Content": "",
+            "VolumeName": "LENOVO_ESXI6.7U3-17700523_202111",
+            "MountPoint": "/Volumes/LENOVO_ESXI6.7U3-17700523_202111",
+            "Size": 124_218_507_264
+        ]
+
+        XCTAssertEqual(
+            DiskService.wholeDiskVolumeIdentifier(from: wholeDisk),
+            "disk35"
+        )
+    }
+
+    func testPartitionedWholeDiskIsNotDuplicatedAsVolume() {
+        let partitionedDisk: [String: Any] = [
+            "DeviceIdentifier": "disk4",
+            "Content": "GUID_partition_scheme",
+            "Partitions": [[
+                "DeviceIdentifier": "disk4s1",
+                "Content": "EFI"
+            ]]
+        ]
+
+        XCTAssertNil(DiskService.wholeDiskVolumeIdentifier(from: partitionedDisk))
+    }
+
     func testUpdateVersionComparison() {
         XCTAssertTrue(UpdateService.isVersion("v0.2.7", newerThan: "0.2.6"))
         XCTAssertTrue(UpdateService.isVersion("1.0.0", newerThan: "0.9.9"))
@@ -428,6 +456,30 @@ final class CommandRunnerTests: XCTestCase {
 
         XCTAssertEqual(result.visibleDevices, [replacement])
         XCTAssertNil(result.suppressions["disk35"])
+    }
+
+    func testDeviceIdentityChangeClearsStatusForPreviousDisk() {
+        let previous = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "chinese-usb",
+            wholeDisk: "disk35",
+            mounted: false
+        )
+        let replacement = makeTestDisk(
+            id: "disk35s1",
+            persistentID: "efi-usb",
+            wholeDisk: "disk35",
+            mounted: true
+        )
+
+        XCTAssertTrue(WebPanelController.deviceIdentitySetChanged(
+            from: [previous],
+            to: [replacement]
+        ))
+        XCTAssertFalse(WebPanelController.deviceIdentitySetChanged(
+            from: [replacement],
+            to: [replacement]
+        ))
     }
 
     private func makeTestDisk(
