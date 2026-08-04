@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 - 2026-08-04
+
+- Simplifies normal mode to one `Safely Eject` action; per-volume unmount remains an Expert Mode operation for advanced volumes only.
+- Reuses DiskMount's existing sudo session when stopping anylinuxfs, avoiding a redundant `osascript` password prompt while authorization remains valid.
+- Removes every partition on the successfully ejected physical disk from the panel immediately instead of briefly showing stale device information.
+
 ## 0.2.5 - 2026-08-04
 
 - Stops every active anylinuxfs mount on the selected physical disk before asking macOS to eject the disk, preventing a race while the VM releases its raw-device lock.

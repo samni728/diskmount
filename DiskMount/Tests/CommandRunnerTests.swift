@@ -36,6 +36,16 @@ final class CommandRunnerTests: XCTestCase {
         )
     }
 
+    func testAnyLinuxFSUnmountUsesQuotedCachedSudoCommand() {
+        XCTAssertEqual(
+            CommandRunner.anyLinuxFSUnmountCommand(
+                "/Applications/Disk Mount/anylinuxfs",
+                devicePath: "/dev/disk 6s1"
+            ),
+            "'/Applications/Disk Mount/anylinuxfs' 'unmount' '/dev/disk 6s1'"
+        )
+    }
+
     func testAnyLinuxFSRecognizesRawDiskPrivacyDenial() {
         let error = CommandError.failed(
             executable: "/path/to/anylinuxfs",
@@ -103,6 +113,59 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertTrue(DiskService.isBusyEjectErrorMessage("Disk dissented by PID 123"))
         XCTAssertTrue(DiskService.isBusyEjectErrorMessage("At least one volume could not be unmounted"))
         XCTAssertFalse(DiskService.isBusyEjectErrorMessage("Media not found"))
+    }
+
+    func testSuccessfulEjectRemovesEveryPartitionOnThePhysicalDisk() {
+        let selected = DiskDevice(
+            id: "disk34s1",
+            persistentID: "one",
+            wholeDiskIdentifier: "disk34",
+            name: "SYSDISK",
+            fileSystem: "ntfs",
+            content: "Windows_NTFS",
+            mountPoint: "/Volumes/SYSDISK",
+            size: 1_000,
+            mounted: true,
+            writable: true,
+            isNTFS: true,
+            isProtected: false
+        )
+        let sameDisk = DiskDevice(
+            id: "disk34s2",
+            persistentID: "two",
+            wholeDiskIdentifier: "disk34",
+            name: "DATA",
+            fileSystem: "exfat",
+            content: "Microsoft Basic Data",
+            mountPoint: "/Volumes/DATA",
+            size: 2_000,
+            mounted: true,
+            writable: true,
+            isNTFS: false,
+            isProtected: false
+        )
+        let otherDisk = DiskDevice(
+            id: "disk35s1",
+            persistentID: "three",
+            wholeDiskIdentifier: "disk35",
+            name: "USB",
+            fileSystem: "msdos",
+            content: "DOS_FAT_32",
+            mountPoint: "/Volumes/USB",
+            size: 3_000,
+            mounted: true,
+            writable: true,
+            isNTFS: false,
+            isProtected: false
+        )
+
+        XCTAssertEqual(
+            WebPanelController.devicesAfterSuccessfulEject(
+                [selected, sameDisk, otherDisk],
+                wholeDiskIdentifier: "disk34"
+            ),
+            [otherDisk]
+        )
     }
 
 }

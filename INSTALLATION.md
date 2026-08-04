@@ -4,18 +4,18 @@
 
 ## Before you install
 
-Download DiskMount only from the official [GitHub Releases page](https://github.com/samni728/diskmount/releases). Version 0.2.5 is self-contained and does not require Homebrew, Xcode, or a separate anylinuxfs installation.
+Download DiskMount only from the official [GitHub Releases page](https://github.com/samni728/diskmount/releases). Version 0.2.6 is self-contained and does not require Homebrew, Xcode, or a separate anylinuxfs installation.
 
 The current package is signed with the developer's Apple Development certificate, but it is not signed with a Developer ID Application certificate and is not Apple-notarized. A Mac that downloads the DMG from the internet may therefore block the first launch. This Gatekeeper approval is separate from the disk permissions requested after DiskMount starts.
 
 ## Normal installation
 
-1. Download `DiskMount-0.2.5-macOS26.dmg` and its `.sha256` file.
+1. Download `DiskMount-0.2.6-macOS26.dmg` and its `.sha256` file.
 2. Optionally verify the download in Terminal:
 
    ```bash
    cd ~/Downloads
-   shasum -a 256 -c DiskMount-0.2.5-macOS26.dmg.sha256
+   shasum -a 256 -c DiskMount-0.2.6-macOS26.dmg.sha256
    ```
 
 3. Open the DMG and drag `DiskMount.app` to `Applications`.
@@ -39,7 +39,7 @@ Avoid instructions that permanently disable Gatekeeper or indiscriminately remov
 
 The following approvals serve different purposes:
 
-1. **Administrator authorization:** NTFS read/write mounting and failure recovery need elevated access. The password is passed transiently to macOS `sudo`; DiskMount does not store, log, or upload it.
+1. **Administrator authorization:** NTFS read/write mounting, stopping its disk service for safe eject, and failure recovery need elevated access. DiskMount reuses a still-valid authorization session and asks again only when macOS authorization has expired. The password is passed transiently to macOS `sudo`; DiskMount does not store, log, or upload it.
 2. **Full Disk Access:** enable **System Settings → Privacy & Security → Full Disk Access → DiskMount**.
 3. **Removable Volumes:** when macOS shows this switch, enable **System Settings → Privacy & Security → Files & Folders → DiskMount → Removable Volumes**.
 4. Fully quit and reopen DiskMount after changing either privacy permission.
@@ -48,4 +48,4 @@ DiskMount does not format, erase, repartition, or convert disks. NTFS read/write
 
 ## Commercial distribution status
 
-Version 0.2.5 is a development-signed community release. Warning-free public distribution requires a Developer ID Application certificate, hardened-runtime signing of the app and all bundled helpers, Apple notarization, and a stapled notarization ticket.
+Version 0.2.6 is a development-signed community release. Warning-free public distribution requires a Developer ID Application certificate, hardened-runtime signing of the app and all bundled helpers, Apple notarization, and a stapled notarization ticket.

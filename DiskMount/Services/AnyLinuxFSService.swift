@@ -47,7 +47,7 @@ final class AnyLinuxFSService {
         guard let path = executablePath else {
             throw AnyLinuxFSError.notInstalled
         }
-        _ = try CommandRunner.runAsAdministrator(path, arguments: ["unmount", devicePath])
+        _ = try CommandRunner.runAnyLinuxFSUnmountAsAdministrator(path, devicePath: devicePath)
     }
 
     static func isRawDiskPermissionError(_ error: Error) -> Bool {

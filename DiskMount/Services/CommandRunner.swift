@@ -151,6 +151,17 @@ enum CommandRunner {
         return try sudoSession.run(command)
     }
 
+    static func runAnyLinuxFSUnmountAsAdministrator(
+        _ executable: String,
+        devicePath: String
+    ) throws -> CommandResult {
+        return try sudoSession.run(anyLinuxFSUnmountCommand(executable, devicePath: devicePath))
+    }
+
+    static func anyLinuxFSUnmountCommand(_ executable: String, devicePath: String) -> String {
+        [executable, "unmount", devicePath].map(shellQuote).joined(separator: " ")
+    }
+
     static func shellQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
@@ -200,9 +211,9 @@ private final class SudoSession {
             alert.alertStyle = .warning
             alert.messageText = "DiskMount 需要管理员授权 / Administrator Authorization"
             alert.informativeText = """
-            此授权仅用于 DiskMount 的 NTFS 读写挂载与失败恢复。密码只通过标准输入交给 macOS sudo，不保存、不记录、不上传。
+            此授权仅用于 DiskMount 的 NTFS 读写挂载、停止磁盘服务与安全弹出。密码只通过标准输入交给 macOS sudo，不保存、不记录、不上传。
 
-            This authorization is used only for DiskMount NTFS mounting and failure recovery. The password is passed to macOS sudo via standard input and is never stored, logged, or uploaded.
+            This authorization is used only for DiskMount NTFS mounting, stopping disk services, and safe eject. The password is passed to macOS sudo via standard input and is never stored, logged, or uploaded.
 
             原始磁盘访问还可能需要在“隐私与安全性”中开启“完全磁盘访问权限”和“可移动卷”。
             """

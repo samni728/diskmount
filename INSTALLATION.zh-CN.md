@@ -4,18 +4,18 @@
 
 ## 安装前须知
 
-请仅从项目的 [GitHub Releases 页面](https://github.com/samni728/diskmount/releases)下载 DiskMount。0.2.5 是自包含版本，不需要用户安装 Homebrew、Xcode 或独立的 anylinuxfs。
+请仅从项目的 [GitHub Releases 页面](https://github.com/samni728/diskmount/releases)下载 DiskMount。0.2.6 是自包含版本，不需要用户安装 Homebrew、Xcode 或独立的 anylinuxfs。
 
 当前安装包使用开发者本人的 Apple Development 证书签名，但尚未使用 Developer ID Application 证书，也没有通过 Apple 公证。从互联网下载 DMG 后，其他 Mac 可能会在第一次启动时进行拦截。这个 Gatekeeper 安装放行与 App 启动后的磁盘权限是两套相互独立的授权。
 
 ## 正常安装流程
 
-1. 下载 `DiskMount-0.2.5-macOS26.dmg` 和对应的 `.sha256` 文件。
+1. 下载 `DiskMount-0.2.6-macOS26.dmg` 和对应的 `.sha256` 文件。
 2. 可以在终端验证下载完整性：
 
    ```bash
    cd ~/Downloads
-   shasum -a 256 -c DiskMount-0.2.5-macOS26.dmg.sha256
+   shasum -a 256 -c DiskMount-0.2.6-macOS26.dmg.sha256
    ```
 
 3. 打开 DMG，把 `DiskMount.app` 拖入“应用程序”。
@@ -39,7 +39,7 @@
 
 以下权限的用途不同，需要分别处理：
 
-1. **管理员授权：** NTFS 读写挂载和失败恢复需要更高权限。密码只会短暂交给 macOS `sudo`，DiskMount 不会保存、记录或上传密码。
+1. **管理员授权：** NTFS 读写加载、为安全弹出停止其磁盘服务，以及失败恢复需要更高权限。有效授权尚未过期时，DiskMount 会直接复用；只有 macOS 授权已经失效时才会再次询问。密码只会短暂交给 macOS `sudo`，DiskMount 不会保存、记录或上传密码。
 2. **完全磁盘访问权限：** 前往 **系统设置 → 隐私与安全性 → 完全磁盘访问权限 → DiskMount** 开启。
 3. **可移动卷权限：** 如果系统显示该选项，前往 **系统设置 → 隐私与安全性 → 文件与文件夹 → DiskMount → 可移动卷** 开启。
 4. 修改上述任一隐私权限后，请完全退出并重新打开 DiskMount。
@@ -48,4 +48,4 @@ DiskMount 不会格式化、抹掉、重新分区或转换磁盘格式。NTFS �
 
 ## 商业分发状态
 
-0.2.5 仍属于开发签名的社区版本。要实现面向普通用户、无未知开发者拦截的公开分发，还需要 Developer ID Application 证书、对 App 和所有内嵌程序进行 Hardened Runtime 签名、提交 Apple 公证并装订公证票据。
+0.2.6 仍属于开发签名的社区版本。要实现面向普通用户、无未知开发者拦截的公开分发，还需要 Developer ID Application 证书、对 App 和所有内嵌程序进行 Hardened Runtime 签名、提交 Apple 公证并装订公证票据。

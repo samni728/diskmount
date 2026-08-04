@@ -29,6 +29,13 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     private var wakeRecoveryWorkItems: [DispatchWorkItem] = []
     private var removedDuplicateDuringWakeRecovery = false
 
+    static func devicesAfterSuccessfulEject(
+        _ devices: [DiskDevice],
+        wholeDiskIdentifier: String
+    ) -> [DiskDevice] {
+        devices.filter { $0.wholeDiskIdentifier != wholeDiskIdentifier }
+    }
+
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         observeVolumeChanges()
@@ -253,7 +260,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
             publish()
         case "quit":
             NSApp.terminate(nil)
-        case "mount", "unmount", "eject", "mountNTFS", "open", "mountProtected", "unmountProtected":
+        case "mount", "eject", "mountNTFS", "open", "mountProtected", "unmountProtected":
             guard let deviceID, let device = devices.first(where: { $0.id == deviceID }) else {
                 publish(error: localized(
                     zh: "设备状态已变化，请刷新后重试。",
@@ -340,18 +347,6 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                         zh: "已加载高级卷 \(device.name)；实际读写能力由文件系统与 macOS 安全策略决定。",
                         en: "Mounted advanced volume \(device.name). Actual write access depends on its file system and macOS security policy."
                     )
-                case "unmount":
-                    if device.isNTFS, self.anyLinuxFS.executablePath != nil {
-                        do {
-                            try self.anyLinuxFS.unmount(devicePath: device.devicePath)
-                        } catch {
-                            // A read-only NTFS volume may have been mounted by macOS rather than anylinuxfs.
-                            try self.diskService.unmount(device)
-                        }
-                    } else {
-                        try self.diskService.unmount(device)
-                    }
-                    successMessage = self.localized(zh: "已卸载 \(device.name)", en: "Unmounted \(device.name)")
                 case "unmountProtected":
                     try self.diskService.unmountProtected(device)
                     successMessage = self.localized(zh: "已卸载高级卷 \(device.name)", en: "Unmounted advanced volume \(device.name)")
@@ -382,7 +377,12 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
                 let refreshed = (try? self.diskService.listExternalVolumes(includeAdvanced: self.proMode)) ?? self.devices
                 DispatchQueue.main.async {
-                    self.devices = refreshed
+                    self.devices = action == "eject"
+                        ? Self.devicesAfterSuccessfulEject(
+                            refreshed,
+                            wholeDiskIdentifier: device.wholeDiskIdentifier
+                        )
+                        : refreshed
                     if action == "mountNTFS" {
                         self.autoMountNTFSPersistentIDs.insert(device.persistentID)
                         self.saveAutoMountPreferences()
@@ -518,7 +518,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func publish() {
         let state = PanelState(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.5",
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.6",
             devices: devices,
             dependency: anyLinuxFS.dependencyState(),
             proMode: proMode,

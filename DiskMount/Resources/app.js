@@ -40,8 +40,7 @@
       autoReadWriteOff: 'Auto Read/Write: Off',
       mount: 'Mount',
       openFinder: 'Open in Finder',
-      unmount: 'Unmount Volume',
-      eject: 'Safely Eject Disk',
+      eject: 'Safely Eject',
       protected: 'System or auxiliary partition · Per-volume authorization required',
       advancedUnlocked: 'Advanced access unlocked for this session · Whole-disk eject remains blocked',
       unlockAdvanced: 'Request Read/Write Access',
@@ -97,8 +96,7 @@
       autoReadWriteOff: '自动读写：未开启',
       mount: '加载',
       openFinder: '在 Finder 打开',
-      unmount: '卸载卷',
-      eject: '安全弹出整盘',
+      eject: '安全弹出',
       protected: '系统或辅助分区 · 需要对单个卷再次授权',
       advancedUnlocked: '本次会话已解锁高级访问 · 仍禁止弹出受保护整盘',
       unlockAdvanced: '申请读写访问',
@@ -190,8 +188,7 @@
     }
 
     const mountedActions = device.mounted && !device.isProtected
-      ? `<button class="action" data-action="open" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('openFinder')}</button>
-         <button class="action" data-action="unmount" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('unmount')}</button>`
+      ? `<button class="action" data-action="open" data-device="${escapeHTML(device.id)}" ${busy ? 'disabled' : ''}>${t('openFinder')}</button>`
       : '';
 
     const autoMountAction = device.isNTFS && !device.isProtected

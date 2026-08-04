@@ -24,16 +24,16 @@
 
 # DiskMount
 
-Current version: **0.2.5**
+Current version: **0.2.6**
 
-DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, unmount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format.
+DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format. Normal mode exposes one clear eject action; per-volume unmount is reserved for advanced volumes in Expert Mode.
 
 > [!IMPORTANT]
 > DiskMount never formats, erases, repartitions, or converts a disk. “Mount NTFS Read/Write” changes only the active mount method.
 
 > [!WARNING]
 > **Permissions required for NTFS read/write:**
-> 1. Enter an administrator password when DiskMount requests authorization. This authorization is used only for DiskMount's NTFS mount and failure-recovery operations. The password is never stored, logged, or uploaded.
+> 1. Enter an administrator password when DiskMount requests authorization. This authorization is used only for NTFS mounting, stopping its disk service, safe eject, and failure recovery. The password is never stored, logged, or uploaded.
 > 2. Enable **DiskMount** under **System Settings → Privacy & Security → Full Disk Access**.
 > 3. If macOS shows the option, also enable **System Settings → Privacy & Security → Files & Folders → DiskMount → Removable Volumes**.
 > 4. Fully quit and reopen DiskMount after changing either macOS permission.
@@ -46,11 +46,13 @@ DiskMount detects USB drives and external disks, displays them in a compact menu
 - automatic refresh when external volumes are mounted, unmounted, or renamed;
 - English and Simplified Chinese UI with a persistent language switch;
 - device name, identifier, whole disk, file system, capacity, mount point, and write state;
-- regular mount/unmount operations for FAT, exFAT, and APFS data volumes;
+- regular mounting for FAT, exFAT, and APFS data volumes;
 - NTFS read/write mounting through bundled `anylinuxfs 0.18.0`;
 - remembers per-disk Auto Read/Write preferences and automatically retries recognized NTFS disks while the app is running;
 - open mounted volumes in Finder and safely eject external disks;
+- one clear `Safely Eject` action in normal mode; per-volume unmount is reserved for advanced volumes in Expert Mode;
 - safe eject stops anylinuxfs/NFS services before releasing the physical disk, reports disks still in use, and stops waiting after 30 seconds instead of leaving the panel busy indefinitely;
+- reuses the active administrator authorization while stopping NTFS services, avoiding an unnecessary second password prompt during the same authorized session;
 - fixed header and footer with an independently scrollable device list;
 - project link and Star button inside the app.
 
@@ -88,7 +90,7 @@ When this prompt appears, enter the password for a macOS administrator account a
 - DiskMount passes it directly to `/usr/bin/sudo` through standard input;
 - the field is cleared immediately after submission;
 - the password is never saved to disk, preferences, logs, analytics, or a network service;
-- the elevated operation is used only for DiskMount's bundled NTFS mount command and, if that command fails, restoration of the normal macOS read-only mount.
+- the elevated operation is used only for the bundled NTFS mount command, stopping its service for safe eject, and restoration of the normal macOS read-only mount after failure.
 
 DiskMount maintains the macOS `sudo` authorization timestamp while the app remains open. This lets an already authorized, remembered disk mount automatically when reinserted without saving the password. Quitting DiskMount ends this keep-alive behavior; macOS may request authorization again after the app is reopened.
 
@@ -112,18 +114,18 @@ Expert Mode confirmation is an additional in-app safety check. It does not repla
 - administrator approval when a mount operation requires elevated access;
 - user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.5 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.6 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.5-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.6-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
 
 ### Gatekeeper and third-party app warning
 
-The 0.2.5 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
+The 0.2.6 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
 
 If macOS blocks DiskMount, try to open it once, then go to **System Settings → Privacy & Security → Security → Open Anyway**, authenticate, and confirm **Open**. Use this per-app exception; do not permanently disable Gatekeeper. Organization-managed Macs may require approval from an IT administrator.
 
@@ -165,9 +167,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.5 -m "DiskMount 0.2.5"
+git tag -a v0.2.6 -m "DiskMount 0.2.6"
 git push origin main
-git push origin v0.2.5
+git push origin v0.2.6
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.
