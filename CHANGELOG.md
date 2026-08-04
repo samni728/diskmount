@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Stops every active anylinuxfs mount on the selected physical disk before asking macOS to eject the disk, preventing a race while the VM releases its raw-device lock.
+- Adds a 30-second eject timeout and clearer bilingual guidance when Finder or another app still has the disk in use.
+- Replaces the oversized Ko-fi artwork in both READMEs with a compact, locally stored coffee button.
+
 ## 0.2.4 - 2026-08-03
 
 - Added sleep/wake recovery that pauses automatic disk actions until external storage has stabilized.

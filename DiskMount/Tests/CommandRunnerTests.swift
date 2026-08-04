@@ -10,6 +10,18 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertEqual(CommandRunner.shellQuote("$(touch /tmp/nope)"), "'$(touch /tmp/nope)'")
     }
 
+    func testCommandTimeoutStopsHungProcess() {
+        XCTAssertThrowsError(
+            try CommandRunner.run("/bin/sleep", arguments: ["2"], timeout: 0.1)
+        ) { error in
+            guard case CommandError.timedOut(let executable, let seconds) = error else {
+                return XCTFail("Expected timeout, got \(error)")
+            }
+            XCTAssertEqual(executable, "/bin/sleep")
+            XCTAssertEqual(seconds, 0.1, accuracy: 0.001)
+        }
+    }
+
     func testAdministratorCommandPreservesInvokingUserForAnyLinuxFS() {
         let command = CommandRunner.administratorShellCommand(
             "/Applications/Disk Mount/anylinuxfs",
@@ -70,6 +82,27 @@ final class CommandRunnerTests: XCTestCase {
 
         XCTAssertEqual(mounts["disk9s2"]?.mountPoint, "/Volumes/My Disk")
         XCTAssertEqual(mounts["disk9s2"]?.writable, false)
+    }
+
+    func testMatchesEveryAnyLinuxFSMountOnSelectedWholeDisk() {
+        let identifiers = DiskService.matchingAnyLinuxFSIdentifiers(
+            wholeDiskIdentifier: "disk34",
+            activeIdentifiers: ["disk34s1", "disk34s2", "disk66s1"],
+            parentWholeDisks: [
+                "disk34s1": "disk34",
+                "disk34s2": "disk34",
+                "disk66s1": "disk66"
+            ]
+        )
+
+        XCTAssertEqual(identifiers, ["disk34s1", "disk34s2"])
+    }
+
+    func testRecognizesBusyDiskEjectErrors() {
+        XCTAssertTrue(DiskService.isBusyEjectErrorMessage("Resource busy"))
+        XCTAssertTrue(DiskService.isBusyEjectErrorMessage("Disk dissented by PID 123"))
+        XCTAssertTrue(DiskService.isBusyEjectErrorMessage("At least one volume could not be unmounted"))
+        XCTAssertFalse(DiskService.isBusyEjectErrorMessage("Media not found"))
     }
 
 }

@@ -18,7 +18,7 @@
 <p align="center">
   支持项目持续开发 —
   <a href="https://ko-fi.com/samni728">
-    <img src="docs/screenshots/kofi.png" alt="通过 Ko-fi 请我喝一杯 5 美元的咖啡" width="110" valign="middle">
+    <img src="docs/screenshots/kofi-button.png" alt="通过 Ko-fi 请我喝一杯 5 美元的咖啡" width="130" valign="middle">
   </a>
 </p>
 

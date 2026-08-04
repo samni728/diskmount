@@ -312,12 +312,22 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         if action == "mountNTFS" {
             autoMountAttempts.insert(device.persistentID)
         }
-        message = nil
+        message = action == "eject"
+            ? localized(
+                zh: "正在停止磁盘服务并安全弹出整盘…",
+                en: "Stopping disk services and safely ejecting the disk…"
+            )
+            : nil
         errorMessage = nil
         publish()
 
         workerQueue.async { [weak self] in
             guard let self else { return }
+            let ejectedPersistentIDs: Set<String> = action == "eject"
+                ? Set(self.devices
+                    .filter { $0.wholeDiskIdentifier == device.wholeDiskIdentifier }
+                    .map(\.persistentID))
+                : []
             do {
                 let successMessage: String
                 switch action {
@@ -346,6 +356,12 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                     try self.diskService.unmountProtected(device)
                     successMessage = self.localized(zh: "已卸载高级卷 \(device.name)", en: "Unmounted advanced volume \(device.name)")
                 case "eject":
+                    let activeDevicePaths = self.diskService.activeAnyLinuxFSDevicePaths(
+                        onWholeDisk: device.wholeDiskIdentifier
+                    )
+                    for devicePath in activeDevicePaths {
+                        try self.anyLinuxFS.unmount(devicePath: devicePath)
+                    }
                     try self.diskService.eject(device)
                     successMessage = self.localized(zh: "已安全弹出 \(device.name)", en: "Safely ejected \(device.name)")
                 case "mountNTFS":
@@ -370,6 +386,9 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                     if action == "mountNTFS" {
                         self.autoMountNTFSPersistentIDs.insert(device.persistentID)
                         self.saveAutoMountPreferences()
+                    }
+                    if action == "eject" {
+                        self.autoMountAttempts.subtract(ejectedPersistentIDs)
                     }
                     self.busyDeviceID = nil
                     self.message = successMessage
@@ -470,8 +489,21 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                 )
             }
         }
-        if error is DiskServiceError {
-            return localized(zh: "无法在 Finder 中打开该磁盘。", en: "Could not open this disk in Finder.")
+        if let diskServiceError = error as? DiskServiceError {
+            switch diskServiceError {
+            case .cannotOpenFinder:
+                return localized(zh: "无法在 Finder 中打开该磁盘。", en: "Could not open this disk in Finder.")
+            case .ejectBusy:
+                return localized(
+                    zh: "磁盘仍被 Finder 或其他 App 使用，暂时无法安全弹出。请关闭正在使用该磁盘的文件或窗口后重试。",
+                    en: "The disk is still in use by Finder or another app. Close files and windows using the disk, then try again."
+                )
+            case .ejectTimedOut:
+                return localized(
+                    zh: "安全弹出等待超过 30 秒，操作已停止。磁盘仍保持连接；请关闭正在使用它的 App 后重试。",
+                    en: "Safe eject took longer than 30 seconds and was stopped. The disk remains connected; close apps using it and try again."
+                )
+            }
         }
         if let panelError = error as? PanelError {
             switch panelError {

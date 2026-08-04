@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 
 struct CommandResult {
@@ -18,6 +19,7 @@ struct CommandResult {
 enum CommandError: LocalizedError {
     case launchFailed(String)
     case authorizationCanceled
+    case timedOut(executable: String, seconds: TimeInterval)
     case failed(executable: String, exitCode: Int32, message: String)
 
     var errorDescription: String? {
@@ -26,6 +28,8 @@ enum CommandError: LocalizedError {
             return "无法启动系统命令：\(message)"
         case .authorizationCanceled:
             return "已取消管理员授权。"
+        case .timedOut(let executable, let seconds):
+            return "命令 \(executable) 在 \(Int(seconds.rounded())) 秒内未完成。"
         case .failed(_, let exitCode, let message):
             return message.isEmpty ? "命令执行失败（退出码 \(exitCode)）" : message
         }
@@ -35,7 +39,12 @@ enum CommandError: LocalizedError {
 enum CommandRunner {
     private static let sudoSession = SudoSession()
 
-    static func run(_ executable: String, arguments: [String], requireSuccess: Bool = true) throws -> CommandResult {
+    static func run(
+        _ executable: String,
+        arguments: [String],
+        requireSuccess: Bool = true,
+        timeout: TimeInterval? = nil
+    ) throws -> CommandResult {
         let process = Process()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
@@ -49,6 +58,27 @@ enum CommandRunner {
             try process.run()
         } catch {
             throw CommandError.launchFailed(error.localizedDescription)
+        }
+
+        if let timeout {
+            let deadline = Date(timeIntervalSinceNow: timeout)
+            while process.isRunning, Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            if process.isRunning {
+                process.terminate()
+                let terminationDeadline = Date(timeIntervalSinceNow: 0.5)
+                while process.isRunning, Date() < terminationDeadline {
+                    Thread.sleep(forTimeInterval: 0.02)
+                }
+                if process.isRunning {
+                    Darwin.kill(process.processIdentifier, SIGKILL)
+                }
+                process.waitUntilExit()
+                _ = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                _ = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                throw CommandError.timedOut(executable: executable, seconds: timeout)
+            }
         }
 
         let output = outputPipe.fileHandleForReading.readDataToEndOfFile()

@@ -84,7 +84,20 @@ final class DiskService {
     }
 
     func eject(_ device: DiskDevice) throws {
-        _ = try CommandRunner.run(diskutil, arguments: ["eject", "/dev/\(device.wholeDiskIdentifier)"])
+        do {
+            _ = try CommandRunner.run(
+                diskutil,
+                arguments: ["eject", "/dev/\(device.wholeDiskIdentifier)"],
+                timeout: 30
+            )
+        } catch CommandError.timedOut {
+            throw DiskServiceError.ejectTimedOut
+        } catch {
+            if Self.isBusyEjectErrorMessage(error.localizedDescription) {
+                throw DiskServiceError.ejectBusy
+            }
+            throw error
+        }
     }
 
     func openInFinder(_ device: DiskDevice) throws {
@@ -96,6 +109,43 @@ final class DiskService {
 
     func isMountedByAnyLinuxFS(deviceIdentifier: String) -> Bool {
         activeAnyLinuxFSMounts()[deviceIdentifier] != nil
+    }
+
+    /// Returns every anylinuxfs-backed partition that belongs to the selected physical disk.
+    /// Stopping all of them before `diskutil eject` prevents the VM from racing disk arbitration
+    /// while it is still releasing its raw block-device lock.
+    func activeAnyLinuxFSDevicePaths(onWholeDisk wholeDiskIdentifier: String) -> [String] {
+        let identifiers = Set(activeAnyLinuxFSMounts().keys)
+        let parentPairs: [(String, String)] = identifiers.compactMap { identifier in
+            guard let parent = diskInfo(identifier: identifier)?["ParentWholeDisk"] as? String else {
+                return nil
+            }
+            return (identifier, parent)
+        }
+        let parents = Dictionary(uniqueKeysWithValues: parentPairs)
+        return Self.matchingAnyLinuxFSIdentifiers(
+            wholeDiskIdentifier: wholeDiskIdentifier,
+            activeIdentifiers: identifiers,
+            parentWholeDisks: parents
+        ).map { "/dev/\($0)" }
+    }
+
+    static func matchingAnyLinuxFSIdentifiers(
+        wholeDiskIdentifier: String,
+        activeIdentifiers: Set<String>,
+        parentWholeDisks: [String: String]
+    ) -> [String] {
+        activeIdentifiers
+            .filter { parentWholeDisks[$0] == wholeDiskIdentifier }
+            .sorted()
+    }
+
+    static func isBusyEjectErrorMessage(_ message: String) -> Bool {
+        let normalized = message.lowercased()
+        return normalized.contains("resource busy")
+            || normalized.contains("could not be unmounted")
+            || normalized.contains("dissented")
+            || normalized.contains("in use")
     }
 
     /// Removes only a duplicate macOS read-only NTFS mount when the same device is already
@@ -394,8 +444,17 @@ final class DiskService {
 
 enum DiskServiceError: LocalizedError {
     case cannotOpenFinder
+    case ejectBusy
+    case ejectTimedOut
 
     var errorDescription: String? {
-        "无法在 Finder 中打开该磁盘。"
+        switch self {
+        case .cannotOpenFinder:
+            return "无法在 Finder 中打开该磁盘。"
+        case .ejectBusy:
+            return "磁盘仍被 Finder 或其他 App 使用，暂时无法安全弹出。"
+        case .ejectTimedOut:
+            return "安全弹出等待超时。"
+        }
     }
 }

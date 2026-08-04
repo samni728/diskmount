@@ -18,7 +18,7 @@
 <p align="center">
   Support continued development —
   <a href="https://ko-fi.com/samni728">
-    <img src="docs/screenshots/kofi.png" alt="Buy me a coffee for $5 on Ko-fi" width="110" valign="middle">
+    <img src="docs/screenshots/kofi-button.png" alt="Buy me a coffee for $5 on Ko-fi" width="130" valign="middle">
   </a>
 </p>
 
