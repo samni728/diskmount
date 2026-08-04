@@ -90,7 +90,7 @@ DiskMount 可能需要三类相互独立的 macOS 权限。它们均由 macOS �
 NTFS 读写加载需要管理员权限，因为内嵌引擎必须访问外接磁盘的块设备，并替换 macOS 默认的 NTFS 只读挂载。
 
 <p align="center">
-  <img src="docs/screenshots/diskmount-0.2.3-authorization.jpg" alt="DiskMount 管理员授权提示" width="360">
+  <img src="docs/screenshots/diskmount-0.2.3-authorization.png" alt="DiskMount 管理员授权提示" width="360">
 </p>
 
 出现此提示时，请输入 macOS 管理员账户的密码并点击 **继续**。密码只用于当前提权操作：
