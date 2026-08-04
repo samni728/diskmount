@@ -106,11 +106,17 @@ enum CommandRunner {
         let privilegedMount = ([executable] + arguments).map(shellQuote).joined(separator: " ")
         let fallbackMount = ["/usr/sbin/diskutil", "mount", devicePath]
             .map(shellQuote).joined(separator: " ")
+        let deviceIdentifier = URL(fileURLWithPath: devicePath).lastPathComponent
+        let activeAnyLinuxFSMount = "/sbin/mount | /usr/bin/grep -F -q -- "
+            + shellQuote("\(deviceIdentifier).local:")
 
         // Run anylinuxfs through a real user-launched sudo process. If the engine fails after
         // unmounting the read-only volume, restore the normal macOS mount before returning.
+        // Never create a duplicate read-only mount if a surviving anylinuxfs NFS mount still
+        // owns this device after system wake.
         let command = "status=0; \(privilegedMount) || status=$?; "
-            + "if [ \"$status\" -ne 0 ]; then \(fallbackMount) >/dev/null 2>&1 || true; fi; "
+            + "if [ \"$status\" -ne 0 ] && ! \(activeAnyLinuxFSMount); then "
+            + "\(fallbackMount) >/dev/null 2>&1 || true; fi; "
             + "(exit \"$status\")"
         return try sudoSession.run(command)
     }

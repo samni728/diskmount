@@ -23,6 +23,11 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         UserDefaults.standard.stringArray(forKey: WebPanelController.autoMountPreferenceKey) ?? []
     )
     private var autoMountAttempts: Set<String> = []
+    private var isSystemSleeping = false
+    private var isWakeRecoveryPending = false
+    private var wakeRecoveryGeneration = 0
+    private var wakeRecoveryWorkItems: [DispatchWorkItem] = []
+    private var removedDuplicateDuringWakeRecovery = false
 
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -35,6 +40,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     }
 
     deinit {
+        wakeRecoveryWorkItems.forEach { $0.cancel() }
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
@@ -72,11 +78,109 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
         center.addObserver(self, selector: #selector(volumeDidChange(_:)), name: NSWorkspace.didMountNotification, object: nil)
         center.addObserver(self, selector: #selector(volumeDidChange(_:)), name: NSWorkspace.didUnmountNotification, object: nil)
         center.addObserver(self, selector: #selector(volumeDidChange(_:)), name: NSWorkspace.didRenameVolumeNotification, object: nil)
+        center.addObserver(self, selector: #selector(systemWillSleep(_:)), name: NSWorkspace.willSleepNotification, object: nil)
+        center.addObserver(self, selector: #selector(systemDidWake(_:)), name: NSWorkspace.didWakeNotification, object: nil)
+        center.addObserver(self, selector: #selector(systemDidWake(_:)), name: NSWorkspace.screensDidWakeNotification, object: nil)
+        center.addObserver(self, selector: #selector(systemDidWake(_:)), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
     }
 
     @objc private func volumeDidChange(_ notification: Notification) {
+        guard !isSystemSleeping, !isWakeRecoveryPending else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             self?.refresh(silent: true)
+        }
+    }
+
+    @objc private func systemWillSleep(_ notification: Notification) {
+        isSystemSleeping = true
+        isWakeRecoveryPending = true
+        removedDuplicateDuringWakeRecovery = false
+        wakeRecoveryGeneration += 1
+        wakeRecoveryWorkItems.forEach { $0.cancel() }
+        wakeRecoveryWorkItems.removeAll()
+        logger.info("System sleep detected; automatic disk actions are paused")
+    }
+
+    @objc private func systemDidWake(_ notification: Notification) {
+        isSystemSleeping = false
+        beginWakeRecovery()
+    }
+
+    private func beginWakeRecovery() {
+        wakeRecoveryGeneration += 1
+        let generation = wakeRecoveryGeneration
+        if !isWakeRecoveryPending {
+            removedDuplicateDuringWakeRecovery = false
+        }
+        isWakeRecoveryPending = true
+        wakeRecoveryWorkItems.forEach { $0.cancel() }
+        wakeRecoveryWorkItems.removeAll()
+        message = localized(
+            zh: "系统已唤醒，正在等待外接磁盘恢复并核对已有 NTFS 读写挂载…",
+            en: "System woke up. Waiting for external disks and checking existing NTFS read/write mounts…"
+        )
+        errorMessage = nil
+        publish()
+
+        scheduleWakeRecoveryPass(after: 2.0, final: false, generation: generation)
+        scheduleWakeRecoveryPass(after: 7.0, final: true, generation: generation)
+    }
+
+    private func scheduleWakeRecoveryPass(after delay: TimeInterval, final: Bool, generation: Int) {
+        let item = DispatchWorkItem { [weak self] in
+            self?.performWakeRecoveryPass(final: final, generation: generation)
+        }
+        wakeRecoveryWorkItems.append(item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
+    }
+
+    private func performWakeRecoveryPass(final: Bool, generation: Int) {
+        guard generation == wakeRecoveryGeneration, !isSystemSleeping else { return }
+        guard busyDeviceID == nil else {
+            if final {
+                scheduleWakeRecoveryPass(after: 2.0, final: true, generation: generation)
+            }
+            return
+        }
+
+        workerQueue.async { [weak self] in
+            guard let self else { return }
+            let removedDuplicates = self.diskService.removeDuplicateNativeMounts()
+            let refreshed = try? self.diskService.listExternalVolumes(includeAdvanced: self.proMode)
+            DispatchQueue.main.async {
+                guard generation == self.wakeRecoveryGeneration, !self.isSystemSleeping else { return }
+                if let refreshed {
+                    self.devices = refreshed
+                    self.authorizedProtectedDeviceIDs.formIntersection(refreshed.map(\.id))
+                }
+                if !removedDuplicates.isEmpty {
+                    self.removedDuplicateDuringWakeRecovery = true
+                    self.logger.info("Removed \(removedDuplicates.count, privacy: .public) duplicate native NTFS mount(s) after wake")
+                }
+                if final {
+                    self.isWakeRecoveryPending = false
+                    self.autoMountAttempts.subtract(self.autoMountNTFSPersistentIDs)
+                    for device in self.devices where self.autoMountNTFSPersistentIDs.contains(device.persistentID) {
+                        if device.writable {
+                            self.autoMountAttempts.insert(device.persistentID)
+                        }
+                    }
+                    self.message = self.removedDuplicateDuringWakeRecovery
+                        ? self.localized(
+                            zh: "已保留 NTFS 读写挂载，并移除 macOS 生成的重复只读卷。",
+                            en: "Kept the NTFS read/write mount and removed the duplicate macOS read-only volume."
+                        )
+                        : self.localized(
+                            zh: "唤醒后的磁盘状态已恢复。",
+                            en: "Disk state recovered after wake."
+                        )
+                    self.errorMessage = nil
+                }
+                self.publish()
+                if final {
+                    self.performNextAutomaticMountIfNeeded()
+                }
+            }
         }
     }
 
@@ -177,7 +281,7 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
     }
 
     func refresh(silent: Bool = false) {
-        guard busyDeviceID == nil else { return }
+        guard busyDeviceID == nil, !isSystemSleeping, !isWakeRecoveryPending else { return }
         workerQueue.async { [weak self] in
             guard let self else { return }
             do {
@@ -246,7 +350,9 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
                     successMessage = self.localized(zh: "已安全弹出 \(device.name)", en: "Safely ejected \(device.name)")
                 case "mountNTFS":
                     guard device.isNTFS else { throw PanelError.notNTFS }
-                    try self.anyLinuxFS.mountReadWrite(devicePath: device.devicePath)
+                    if !self.diskService.isMountedByAnyLinuxFS(deviceIdentifier: device.id) {
+                        try self.anyLinuxFS.mountReadWrite(devicePath: device.devicePath)
+                    }
                     successMessage = self.localized(
                         zh: "已将 \(device.name) 以 NTFS 读写模式加载",
                         en: "Mounted \(device.name) with NTFS read/write access"
@@ -300,6 +406,8 @@ final class WebPanelController: NSViewController, WKScriptMessageHandler {
 
     private func performNextAutomaticMountIfNeeded() {
         guard busyDeviceID == nil,
+              !isSystemSleeping,
+              !isWakeRecoveryPending,
               let device = devices.first(where: {
                   $0.isNTFS
                       && !$0.isProtected

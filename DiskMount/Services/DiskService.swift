@@ -4,6 +4,13 @@ import IOKit
 
 final class DiskService {
     private let diskutil = "/usr/sbin/diskutil"
+    private let mountTool = "/sbin/mount"
+
+    struct AnyLinuxFSMount: Equatable {
+        let deviceIdentifier: String
+        let mountPoint: String
+        let writable: Bool
+    }
 
     private struct Candidate {
         let identifier: String
@@ -20,6 +27,7 @@ final class DiskService {
     }
 
     func listExternalVolumes(includeAdvanced: Bool = false) throws -> [DiskDevice] {
+        let anyLinuxFSMounts = activeAnyLinuxFSMounts()
         let listResult = try CommandRunner.run(diskutil, arguments: ["list", "-plist", "external", "physical"])
         let plist = try PropertyListSerialization.propertyList(from: listResult.stdout, options: [], format: nil)
         guard let root = plist as? [String: Any],
@@ -50,7 +58,8 @@ final class DiskService {
                 fallbackContent: candidate.content,
                 fallbackSize: candidate.size,
                 wholeDiskSize: candidate.wholeDiskSize,
-                forceProtected: candidate.forceProtected || protectedWholeDisks.contains(candidate.wholeDisk)
+                forceProtected: candidate.forceProtected || protectedWholeDisks.contains(candidate.wholeDisk),
+                anyLinuxFSMounts: anyLinuxFSMounts
             )
         }.filter { includeAdvanced || !$0.isProtected }.sorted { lhs, rhs in
             if lhs.wholeDiskIdentifier == rhs.wholeDiskIdentifier { return lhs.id < rhs.id }
@@ -83,6 +92,78 @@ final class DiskService {
         guard NSWorkspace.shared.open(URL(fileURLWithPath: mountPoint)) else {
             throw DiskServiceError.cannotOpenFinder
         }
+    }
+
+    func isMountedByAnyLinuxFS(deviceIdentifier: String) -> Bool {
+        activeAnyLinuxFSMounts()[deviceIdentifier] != nil
+    }
+
+    /// Removes only a duplicate macOS read-only NTFS mount when the same device is already
+    /// available through anylinuxfs. The anylinuxfs/NFS mount is left untouched.
+    @discardableResult
+    func removeDuplicateNativeMounts() -> [String] {
+        let anyLinuxFSMounts = activeAnyLinuxFSMounts()
+        var removed: [String] = []
+
+        for (identifier, anyLinuxFSMount) in anyLinuxFSMounts {
+            guard anyLinuxFSMount.writable,
+                  let info = diskInfo(identifier: identifier),
+                  bool(info["Mounted"]),
+                  !bool(info["Writable"]),
+                  let nativeMountPoint = info["MountPoint"] as? String,
+                  !nativeMountPoint.isEmpty,
+                  nativeMountPoint != anyLinuxFSMount.mountPoint else { continue }
+
+            let combinedType = [
+                string(info["FilesystemType"]),
+                string(info["FilesystemName"]),
+                string(info["Content"])
+            ].joined(separator: " ").lowercased()
+            guard combinedType.contains("ntfs") || combinedType.contains("windows_ntfs") else { continue }
+
+            if (try? CommandRunner.run(diskutil, arguments: ["unmount", "/dev/\(identifier)"])) != nil {
+                removed.append(identifier)
+            }
+        }
+        return removed
+    }
+
+    func activeAnyLinuxFSMounts() -> [String: AnyLinuxFSMount] {
+        guard let result = try? CommandRunner.run(mountTool, arguments: []) else { return [:] }
+        return Self.parseAnyLinuxFSMounts(result.stdoutText)
+    }
+
+    static func parseAnyLinuxFSMounts(_ output: String) -> [String: AnyLinuxFSMount] {
+        var mounts: [String: AnyLinuxFSMount] = [:]
+
+        for line in output.split(whereSeparator: { $0.isNewline }).map(String.init) {
+            guard let sourceEnd = line.range(of: ".local:"),
+                  let onRange = line.range(of: " on ", range: sourceEnd.upperBound..<line.endIndex),
+                  let optionsRange = line.range(of: " (", options: .backwards),
+                  onRange.upperBound <= optionsRange.lowerBound else { continue }
+
+            let identifier = String(line[..<sourceEnd.lowerBound])
+            guard identifier.range(of: #"^disk[0-9]+(?:s[0-9]+)?$"#, options: .regularExpression) != nil else {
+                continue
+            }
+
+            let optionsStart = optionsRange.upperBound
+            guard line.last == ")", optionsStart < line.index(before: line.endIndex) else { continue }
+            let options = String(line[optionsStart..<line.index(before: line.endIndex)])
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            guard options.contains("nfs") else { continue }
+
+            let encodedMountPoint = String(line[onRange.upperBound..<optionsRange.lowerBound])
+            let mountPoint = decodeMountPath(encodedMountPoint)
+            let readOnly = options.contains("read-only") || options.contains("ro")
+            mounts[identifier] = AnyLinuxFSMount(
+                deviceIdentifier: identifier,
+                mountPoint: mountPoint,
+                writable: !readOnly
+            )
+        }
+        return mounts
     }
 
     private func collectPartitions(
@@ -119,7 +200,8 @@ final class DiskService {
         fallbackContent: String,
         fallbackSize: UInt64,
         wholeDiskSize: UInt64,
-        forceProtected: Bool
+        forceProtected: Bool,
+        anyLinuxFSMounts: [String: AnyLinuxFSMount]
     ) throws -> DiskDevice {
         let result = try CommandRunner.run(diskutil, arguments: ["info", "-plist", "/dev/\(identifier)"])
         let plist = try PropertyListSerialization.propertyList(from: result.stdout, options: [], format: nil)
@@ -134,11 +216,10 @@ final class DiskService {
         let isNTFS = combinedType.contains("ntfs") || combinedType.contains("windows_ntfs")
         let mountPointValue = info["MountPoint"] as? String
         let diskutilMountPoint = mountPointValue?.isEmpty == false ? mountPointValue : nil
-        let anyLinuxFSMountPoint = volumeName.isEmpty ? nil : "/Volumes/\(volumeName)"
-        let fallbackMountPoint = anyLinuxFSMountPoint.flatMap {
-            FileManager.default.fileExists(atPath: $0) ? $0 : nil
-        }
-        let mountPoint = diskutilMountPoint ?? fallbackMountPoint
+        let anyLinuxFSMount = isNTFS ? anyLinuxFSMounts[identifier] : nil
+        // Prefer the exact anylinuxfs source match. After wake, macOS can temporarily add a
+        // second read-only mount (for example "SYSDISK 1") while the original NFS mount lives.
+        let mountPoint = anyLinuxFSMount?.mountPoint ?? diskutilMountPoint
         let unnamedAndUnavailable = volumeName.isEmpty && mountPoint == nil && !isNTFS && fileSystem.isEmpty
         let isProtected = forceProtected || isAuxiliaryContent(content) || unnamedAndUnavailable
         let partitionOffset = unsignedInteger(info["PartitionMapPartitionOffset"])
@@ -160,7 +241,8 @@ final class DiskService {
             mountPoint: mountPoint,
             size: unsignedInteger(info["TotalSize"]) == 0 ? fallbackSize : unsignedInteger(info["TotalSize"]),
             mounted: bool(info["Mounted"]) || mountPoint != nil,
-            writable: bool(info["Writable"]) || mountPoint.map(FileManager.default.isWritableFile(atPath:)) == true,
+            writable: anyLinuxFSMount?.writable
+                ?? (bool(info["Writable"]) || mountPoint.map(FileManager.default.isWritableFile(atPath:)) == true),
             isNTFS: isNTFS,
             isProtected: isProtected
         )
@@ -275,6 +357,22 @@ final class DiskService {
             hash &*= 1_099_511_628_211
         }
         return String(format: "%016llx", hash)
+    }
+
+    private func diskInfo(identifier: String) -> [String: Any]? {
+        guard let result = try? CommandRunner.run(diskutil, arguments: ["info", "-plist", "/dev/\(identifier)"]),
+              let plist = try? PropertyListSerialization.propertyList(from: result.stdout, options: [], format: nil) else {
+            return nil
+        }
+        return plist as? [String: Any]
+    }
+
+    private static func decodeMountPath(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\040", with: " ")
+            .replacingOccurrences(of: "\\011", with: "\t")
+            .replacingOccurrences(of: "\\012", with: "\n")
+            .replacingOccurrences(of: "\\134", with: "\\")
     }
 
     private func string(_ value: Any?) -> String {

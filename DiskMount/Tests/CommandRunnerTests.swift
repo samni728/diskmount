@@ -44,4 +44,32 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertFalse(AnyLinuxFSService.isRawDiskPermissionError(error))
     }
 
+    func testParsesAnyLinuxFSMountByDeviceIdentifier() {
+        let output = """
+        /dev/disk3s1 on /System/Volumes/Data (apfs, local, journaled)
+        disk66s1.local:/mnt/SYSDISK on /Volumes/SYSDISK (nfs, nodev, nosuid, noowners, mounted by samni)
+        """
+
+        let mounts = DiskService.parseAnyLinuxFSMounts(output)
+
+        XCTAssertEqual(
+            mounts["disk66s1"],
+            DiskService.AnyLinuxFSMount(
+                deviceIdentifier: "disk66s1",
+                mountPoint: "/Volumes/SYSDISK",
+                writable: true
+            )
+        )
+        XCTAssertNil(mounts["disk3s1"])
+    }
+
+    func testParsesEscapedReadOnlyAnyLinuxFSMount() {
+        let output = "disk9s2.local:/mnt/MyDisk on /Volumes/My\\040Disk (nfs, read-only, noowners)"
+
+        let mounts = DiskService.parseAnyLinuxFSMounts(output)
+
+        XCTAssertEqual(mounts["disk9s2"]?.mountPoint, "/Volumes/My Disk")
+        XCTAssertEqual(mounts["disk9s2"]?.writable, false)
+    }
+
 }
