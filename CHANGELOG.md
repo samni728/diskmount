@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.4 - 2026-08-03
 
 - Added sleep/wake recovery that pauses automatic disk actions until external storage has stabilized.
 - Detects active anylinuxfs mounts by their exact device-backed NFS source instead of guessing from a volume name.
@@ -8,6 +8,8 @@
 - Removes only the duplicate macOS read-only NTFS mount when the same device already has an active anylinuxfs read/write mount.
 - Avoids starting a second anylinuxfs process or requesting administrator authorization when the remembered read/write mount is still active.
 - Prevents failure recovery from creating a normal read-only duplicate while an anylinuxfs NFS mount still owns the device.
+- Added bilingual Gatekeeper, third-party app installation, Full Disk Access, Removable Volumes, and administrator authorization instructions.
+- Clarified that the current package is development-signed but not Apple-notarized, so another Mac may require the per-app “Open Anyway” flow.
 
 ## 0.2.3 - 2026-08-03
 

@@ -48,4 +48,10 @@ hdiutil create \
   -format UDZO \
   "$DMG_PATH"
 
+# Sign the disk image as well as the embedded app so recipients can verify that the
+# package was not modified after it was built. An Apple Development identity is still
+# not a substitute for Developer ID distribution signing and Apple notarization.
+codesign --force --timestamp=none --sign "$SIGN_IDENTITY" "$DMG_PATH"
+codesign --verify --verbose=2 "$DMG_PATH"
+
 echo "DMG 已生成：$DMG_PATH"

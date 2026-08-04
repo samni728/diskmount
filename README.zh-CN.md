@@ -17,7 +17,7 @@
 
 # DiskMount
 
-当前版本：**0.2.3**
+当前版本：**0.2.4**
 
 DiskMount 会识别 U 盘和移动硬盘，并在紧凑的菜单栏面板中提供加载、卸载、Finder 打开和安全弹出操作。NTFS 卷通过 App 内嵌的 `anylinuxfs` 运行时以读写方式重新加载，不会改变原有文件系统格式。
 
@@ -102,20 +102,30 @@ DiskMount 运行期间会维持 macOS 的 `sudo` 授权时间戳。这样，已�
 - 挂载需要更高权限时，需通过 macOS 管理员授权；
 - 第一次进行 NTFS 原始磁盘访问时，需允许访问可移动卷。
 
-0.2.3 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
+0.2.4 不支持 Intel/x86 Mac，因为上游 `anylinuxfs/libkrun` 运行时目前主要支持 Apple Silicon。
 
 ## 安装
 
-1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.3-macOS26.dmg`；
+1. 从 [Releases](https://github.com/samni728/diskmount/releases) 下载 `DiskMount-0.2.4-macOS26.dmg`；
 2. 打开 DMG，将 `DiskMount.app` 拖入“应用程序”；
 3. 从“应用程序”启动 DiskMount；
 4. 首次显示面板后，App 会继续常驻顶部菜单栏。
+
+### Gatekeeper 与第三方 App 提示
+
+0.2.4 安装包使用开发者本人的 Apple Development 证书签名，但尚未通过 Apple 公证。其他 Mac 从互联网下载 DMG 后，第一次启动时可能会被系统阻止。
+
+如果 macOS 阻止 DiskMount，请先尝试打开一次，然后前往 **系统设置 → 隐私与安全性 → 安全性 → 仍要打开**，输入当前 Mac 的登录密码并确认 **打开**。请使用这种单 App 放行方式，不要永久关闭 Gatekeeper。公司或学校管理的 Mac 可能还需要 IT 管理员批准。
+
+完整流程请阅读[中文安装与授权指南](INSTALLATION.zh-CN.md)或[英文指南](INSTALLATION.md)。Apple 官方也提供了[安全地打开 Mac App](https://support.apple.com/en-ie/102445)说明。
+
+### App 启动后的磁盘权限
 
 第一次进行 NTFS 读写加载时，可能需要管理员密码、完全磁盘访问权限和可移动卷权限。这些授权相互独立。DiskMount 会说明每项权限的用途，并且不会持久化管理员密码。
 
 DMG 内嵌 ARM64 的 anylinuxfs、Linux kernel、VM helpers、modules 和 `libblkid`。最终用户不需要安装 Homebrew、Xcode、XcodeGen 或独立的 anylinuxfs。
 
-当前发布包使用 Apple Development 证书，适合项目测试。若需面向所有用户无警告公开分发，仍需要 Developer ID Application 证书、Apple 公证和 stapling。
+当前发布包使用 Apple Development 证书，适合项目测试。若需面向所有用户无警告公开分发，仍需要 Developer ID Application 证书、Apple 公证和 stapling。上面的 Gatekeeper 单 App 放行不会自动授予磁盘权限，用户仍需另行开启 macOS 隐私权限。
 
 ## 构建与测试
 
@@ -148,9 +158,9 @@ cd DiskMount
 
 ```bash
 # 先更新 VERSION 和更新说明
-git tag -a v0.2.3 -m "DiskMount 0.2.3"
+git tag -a v0.2.4 -m "DiskMount 0.2.4"
 git push origin main
-git push origin v0.2.3
+git push origin v0.2.4
 ```
 
 如未配置 Developer ID 签名和公证 Secrets，自动产物使用 ad-hoc 签名。详细维护清单见 [RELEASING.md](RELEASING.md)。

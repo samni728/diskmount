@@ -31,6 +31,8 @@ The automated fallback build is ad-hoc signed. It is self-contained but is not A
 
 Do not commit certificates, Apple IDs, app-specific passwords, API keys, or keychain files.
 
+Until Developer ID signing and notarization are configured, every release must link to the bilingual installation guides and clearly state that another Mac may require **System Settings → Privacy & Security → Open Anyway**. Never instruct users to disable Gatekeeper globally or remove quarantine attributes indiscriminately.
+
 Private repositories consume the account's included GitHub Actions minutes and may incur usage charges after that allowance is exhausted.
 
 ## Manual verified release
@@ -39,6 +41,7 @@ Private repositories consume the account's included GitHub Actions minutes and m
 cd DiskMount
 ./scripts/build_dmg.sh
 hdiutil verify "build/DiskMount-$(tr -d '[:space:]' < ../VERSION)-macOS26.dmg"
+codesign --verify --verbose=2 "build/DiskMount-$(tr -d '[:space:]' < ../VERSION)-macOS26.dmg"
 ```
 
 Launch the app from the read-only DMG and verify:
@@ -49,3 +52,5 @@ Launch the app from the read-only DMG and verify:
 - Expert Mode requires two confirmations before advanced-volume actions appear;
 - the NTFS command includes the invoking user's `SUDO_UID` and `SUDO_GID`;
 - no protected-volume mount or NTFS write test is run without an expendable test disk and a backup.
+
+For a development-signed release, test the documented per-app Gatekeeper override on a separate Mac or a clean account using a freshly downloaded DMG. For a Developer ID release, also require successful `spctl` assessment, notarization acceptance, and `stapler validate` before publishing.

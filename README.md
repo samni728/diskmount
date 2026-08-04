@@ -17,7 +17,7 @@
 
 # DiskMount
 
-Current version: **0.2.3**
+Current version: **0.2.4**
 
 DiskMount detects USB drives and external disks, displays them in a compact menu bar panel, and provides mount, unmount, Finder, and safe-eject actions. NTFS volumes can be remounted with read/write access through the bundled `anylinuxfs` runtime without changing their file-system format.
 
@@ -102,20 +102,30 @@ Expert Mode confirmation is an additional in-app safety check. It does not repla
 - administrator approval when a mount operation requires elevated access;
 - user approval for removable-volume access on first NTFS raw-disk access.
 
-Intel/x86 Macs are not supported in 0.2.3 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
+Intel/x86 Macs are not supported in 0.2.4 because the upstream `anylinuxfs/libkrun` runtime currently targets Apple Silicon.
 
 ## Installation
 
-1. Download `DiskMount-0.2.3-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
+1. Download `DiskMount-0.2.4-macOS26.dmg` from [Releases](https://github.com/samni728/diskmount/releases);
 2. open the DMG and drag `DiskMount.app` to `Applications`;
 3. launch DiskMount from Applications;
 4. use the menu bar item after the initial panel appears.
+
+### Gatekeeper and third-party app warning
+
+The 0.2.4 package is signed with the developer's Apple Development certificate but is not Apple-notarized. A different Mac may block the first launch after downloading the DMG from the internet.
+
+If macOS blocks DiskMount, try to open it once, then go to **System Settings → Privacy & Security → Security → Open Anyway**, authenticate, and confirm **Open**. Use this per-app exception; do not permanently disable Gatekeeper. Organization-managed Macs may require approval from an IT administrator.
+
+See the complete [English installation and permissions guide](INSTALLATION.md) or [Simplified Chinese guide](INSTALLATION.zh-CN.md). Apple also documents this flow in [Open apps safely on your Mac](https://support.apple.com/en-ie/102445).
+
+### Permissions after launch
 
 The first NTFS read/write mount may require an administrator password, Full Disk Access, and Removable Volumes access. These approvals are independent. DiskMount explains why each permission is needed and does not persist the administrator password.
 
 The DMG bundles the ARM64 `anylinuxfs` executable, Linux kernel, VM helpers, modules, and `libblkid`. End users do not need Homebrew, Xcode, XcodeGen, or a separately installed anylinuxfs package.
 
-The current release uses an Apple Development certificate for project testing. Warning-free public distribution still requires a Developer ID Application certificate, Apple notarization, and stapling.
+The current release uses an Apple Development certificate for project testing. Warning-free public distribution still requires a Developer ID Application certificate, Apple notarization, and stapling. The Gatekeeper exception above does not grant disk access; macOS privacy permissions must still be enabled separately.
 
 ## Build and test
 
@@ -145,9 +155,9 @@ Release sequence:
 
 ```bash
 # Update VERSION and release notes first
-git tag -a v0.2.3 -m "DiskMount 0.2.3"
+git tag -a v0.2.4 -m "DiskMount 0.2.4"
 git push origin main
-git push origin v0.2.3
+git push origin v0.2.4
 ```
 
 Automated packages are ad-hoc signed unless Developer ID signing and notarization secrets are configured. See [RELEASING.md](RELEASING.md) for the maintenance checklist.
