@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.5 - 2026-08-04
 
 - Stops every active anylinuxfs mount on the selected physical disk before asking macOS to eject the disk, preventing a race while the VM releases its raw-device lock.
 - Adds a 30-second eject timeout and clearer bilingual guidance when Finder or another app still has the disk in use.
